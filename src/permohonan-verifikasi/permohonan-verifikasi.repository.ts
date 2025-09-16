@@ -4,7 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { MasterPrismaService, PrismaService } from 'src/common/prisma.service';
-import { Prisma, status_upload_ii } from '.prisma/main-client/client';
+import { Prisma, upload_status_enum } from '.prisma/main-client/client';
 import { CreateResponsePermohonanVerifikasiPpnsVerifikasiPpnsDto } from './dto/create.permohonan-verifikasi.dto';
 import { SuratRepository } from 'src/surat/surat.repository';
 
@@ -17,26 +17,24 @@ export class PermohonanVerifikasiRepository {
   ) {}
 
   async savePpnsVerifikasiPns(
+    id_surat: number,
     data: Prisma.PpnsVerifikasiPpnsCreateInput,
   ): Promise<CreateResponsePermohonanVerifikasiPpnsVerifikasiPpnsDto> {
     const result = await this.prismaService.ppnsVerifikasiPpns.create({
       data,
     });
 
-    // Cari id_surat dari relasi
-    let idSurat: number | null = null;
     if (typeof result.id_data_ppns === 'number') {
       const d = await this.suratRepository.findPpnsDataPnsById(
         result.id_data_ppns,
       );
       if (!d) throw new NotFoundException('Data PNS not found');
-      idSurat = d.id_surat ?? null;
     }
 
     return {
       id: result.id,
       id_data_ppns: result.id_data_ppns,
-      id_surat: idSurat,
+      id_surat: id_surat,
       masa_kerja: {
         tgl_pengangkatan_sk_pns: result.tgl_pengangkatan_sk_pns
           ? result.tgl_pengangkatan_sk_pns.toISOString()
@@ -50,11 +48,7 @@ export class PermohonanVerifikasiRepository {
         tgl_lulus: result.tgl_lulus ? result.tgl_lulus.toISOString() : null,
       },
       teknis_operasional_penegak_hukum:
-        result.teknis_operasional_penegak_hukum === '1'
-          ? true
-          : result.teknis_operasional_penegak_hukum === '0'
-            ? false
-            : null,
+        result.teknis_operasional_penegak_hukum,
       jabatan: result.jabatan ?? null,
       surat_sehat_jasmani_rohani: {
         nama_rs: result.nama_rs ?? null,
@@ -73,17 +67,13 @@ export class PermohonanVerifikasiRepository {
 
   async updatePpnsVerifikasiPns(
     id: number,
+    id_surat: number,
     data: Prisma.PpnsVerifikasiPpnsUpdateInput,
   ): Promise<CreateResponsePermohonanVerifikasiPpnsVerifikasiPpnsDto> {
     // Cari id_surat lebih awal
-    let idSurat: number | null = null;
-    if (typeof data.id_data_ppns === 'number') {
-      const pnsData = await this.suratRepository.findPpnsDataPnsById(
-        data.id_data_ppns,
-      );
-      if (!pnsData) throw new NotFoundException('Data PNS not found');
-      idSurat = pnsData.id_surat ?? null;
-    }
+    // const existingRecord = await this.prismaService.ppnsVerifikasiPpns.findUnique({
+    //   where: { id },
+    // });
 
     const result = await this.prismaService.ppnsVerifikasiPpns.update({
       where: { id },
@@ -96,7 +86,7 @@ export class PermohonanVerifikasiRepository {
     return {
       id: result.id,
       id_data_ppns: result.id_data_ppns,
-      id_surat: idSurat,
+      id_surat: id_surat,
       masa_kerja: {
         tgl_pengangkatan_sk_pns: result.tgl_pengangkatan_sk_pns
           ? result.tgl_pengangkatan_sk_pns.toISOString()
@@ -109,12 +99,8 @@ export class PermohonanVerifikasiRepository {
         tgl_ijazah: result.tgl_ijazah ? result.tgl_ijazah.toISOString() : null,
         tgl_lulus: result.tgl_lulus ? result.tgl_lulus.toISOString() : null,
       },
-      teknis_operasional_penegak_hukum:
-        result.teknis_operasional_penegak_hukum === '1'
-          ? true
-          : result.teknis_operasional_penegak_hukum === '0'
-            ? false
-            : null,
+       teknis_operasional_penegak_hukum:
+        result.teknis_operasional_penegak_hukum,
       jabatan: result.jabatan ?? null,
       surat_sehat_jasmani_rohani: {
         nama_rs: result.nama_rs ?? null,
@@ -149,6 +135,7 @@ export class PermohonanVerifikasiRepository {
       mime_type?: string;
       file_size?: number;
       status?: string;
+      master_file_id?: number | null;
     }[],
   ) {
     for (const d of dataUpload) {
@@ -172,8 +159,9 @@ export class PermohonanVerifikasiRepository {
           where: { id: existing.id },
           data: {
             id_surat: d.id_surat,
-            id_ppns: d.id_ppns,
+            id_data_ppns: d.id_ppns,
             file_type: this.cleanString(d.file_type) ?? existing.file_type,
+            id_file_type: d.master_file_id ?? existing.id_file_type,
             original_name:
               this.cleanString(d.original_name) ?? existing.original_name,
             status: this.normalizeStatus(d.status) ?? existing.status,
@@ -189,8 +177,9 @@ export class PermohonanVerifikasiRepository {
         await this.prismaService.ppnsUpload.create({
           data: {
             id_surat: d.id_surat,
-            id_ppns: d.id_ppns,
+            id_data_ppns: d.id_ppns,
             file_type: this.cleanString(d.file_type) ?? '',
+            id_file_type: d.master_file_id ?? null,
             original_name: this.cleanString(d.original_name) ?? '',
             status: this.normalizeStatus(d.status),
             keterangan: this.cleanString(d.keterangan),
@@ -206,16 +195,16 @@ export class PermohonanVerifikasiRepository {
     return { message: 'Upload dokumen berhasil disimpan/diupdate' };
   }
 
-  private normalizeStatus(status?: string): status_upload_ii | null {
-    const allowed: status_upload_ii[] = [
+  private normalizeStatus(status?: string): upload_status_enum | null {
+    const allowed: upload_status_enum[] = [
       'pending',
       'sesuai',
       'tidakSesuai',
       'tolak',
     ];
-    if (!status || !allowed.includes(status as status_upload_ii))
+    if (!status || !allowed.includes(status as upload_status_enum))
       return 'pending';
-    return status as status_upload_ii;
+    return status as upload_status_enum;
   }
 
   private cleanString(value?: string | null): string | null {

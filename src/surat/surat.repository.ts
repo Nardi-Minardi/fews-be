@@ -274,7 +274,11 @@ export class SuratRepository {
       skip: (page - 1) * limit,
       take: limit,
       orderBy: { [orderBy]: orderDirection },
-      include: { ppns_kementerian: true, ppns_instansi: true, ppns_layanan: true },
+      include: {
+        ppns_kementerian: true,
+        ppns_instansi: true,
+        ppns_layanan: true,
+      },
     });
 
     // mapping hasil
@@ -317,12 +321,34 @@ export class SuratRepository {
   }
 
   async savePpnsDataPns(
-    data: Prisma.PpnsDataPnsCreateInput,
+    data: Prisma.PpnsDataPnsCreateInput & {
+      provinsi_penempatan?: number;
+      kabupaten_penempatan?: number;
+      unit_kerja?: string;
+      gelar_depan?: string | null;
+      created_by: number |null
+    },
   ): Promise<CreateResponsePpnsDataPnsDto> {
-    const result = await this.prismaService.ppnsDataPns.create({
-      data,
-      include: {
-        ppns_wilayah_kerja: true,
+
+     // create data utama PNS (tanpa provinsi/kabupaten/unit_kerja, karena bukan field di tabel ini)
+  const { provinsi_penempatan, kabupaten_penempatan, unit_kerja, created_by, ...ppnsData } = data;
+
+  const result = await this.prismaService.ppnsDataPns.create({
+    data: ppnsData,
+    include: {
+      ppns_wilayah_kerja: true,
+      ppns_verifikasi_ppns: true,
+    },
+  });
+
+    // create verifikasi PNS langsung setelahnya
+    await this.prismaService.ppnsVerifikasiPpns.create({
+      data: {
+        id_data_ppns: result.id,
+        provinsi_penempatan: (data as any).provinsi_penempatan ?? null,
+        kabupaten_penempatan: (data as any).kabupaten_penempatan ?? null,
+        unit_kerja: (data as any).unit_kerja ?? null,
+        created_by: (data as any).created_by ?? null, // kalau ada info user login
       },
     });
 
@@ -332,8 +358,9 @@ export class SuratRepository {
       nip: result.nip,
       nama_gelar: result.nama_gelar,
       jabatan: result.jabatan,
-      pangkat_golongan: result.pangkat_atau_golongan,
+      pangkat_golongan: result.pangkat_golongan,
       jenis_kelamin: result.jenis_kelamin,
+      gelar_depan: (data as any).gelar_depan || null,
       agama: result.agama,
       nama_sekolah: result.nama_sekolah,
       gelar_terakhir: result.gelar_terakhir,
@@ -344,12 +371,16 @@ export class SuratRepository {
       tahun_lulus: result.tahun_lulus,
     };
 
+    // Mapping lokasi_penempatan
+    const lokasiPenempatan = {
+      provinsi_penempatan: (data as any).provinsi_penempatan,
+      kabupaten_penempatan: (data as any).kabupaten_penempatan,
+      unit_kerja: (data as any).unit_kerja,
+    };
+
     // Mapping wilayah kerja
     const wilayahKerja = result.ppns_wilayah_kerja.map((w) => ({
-      provinsi_penempatan: w.provinsi_penempatan,
-      kabupaten_penempatan: w.kabupaten_penempatan,
-      unit_kerja: w.unit_kerja,
-      penempatan_baru: w.penempatan_baru === '1',
+      penempatan_baru: w.penempatan_baru,
       uu_dikawal: [w.uu_dikawal_1, w.uu_dikawal_2, w.uu_dikawal_3].filter(
         (u): u is string => !!u,
       ),
@@ -360,6 +391,7 @@ export class SuratRepository {
       id_surat: result.id_surat,
       identitas_pns: identitasPns,
       wilayah_kerja: wilayahKerja,
+      lokasi_penempatan: lokasiPenempatan,
     };
   }
 
@@ -400,8 +432,9 @@ export class SuratRepository {
       nip: result.nip,
       nama_gelar: result.nama_gelar,
       jabatan: result.jabatan,
-      pangkat_golongan: result.pangkat_atau_golongan,
+      pangkat_golongan: result.pangkat_golongan,
       jenis_kelamin: result.jenis_kelamin,
+      gelar_depan: (data as any).gelar_depan || null,
       agama: result.agama,
       nama_sekolah: result.nama_sekolah,
       gelar_terakhir: result.gelar_terakhir,
@@ -412,12 +445,16 @@ export class SuratRepository {
       tahun_lulus: result.tahun_lulus,
     };
 
+    // Mapping identitas_pns
+    const lokasiPenempatan = {
+      provinsi_penempatan: (data as any).provinsi_penempatan,
+      kabupaten_penempatan: (data as any).kabupaten_penempatan,
+      unit_kerja: (data as any).unit_kerja,
+    };
+
     // Mapping wilayah kerja
     const wilayahKerja = result.ppns_wilayah_kerja.map((w) => ({
-      provinsi_penempatan: w.provinsi_penempatan,
-      kabupaten_penempatan: w.kabupaten_penempatan,
-      unit_kerja: w.unit_kerja,
-      penempatan_baru: w.penempatan_baru === '1',
+      penempatan_baru: w.penempatan_baru,
       uu_dikawal: [w.uu_dikawal_1, w.uu_dikawal_2, w.uu_dikawal_3].filter(
         (u): u is string => !!u,
       ),
@@ -428,22 +465,27 @@ export class SuratRepository {
       id_surat: result.id_surat,
       identitas_pns: identitasPns,
       wilayah_kerja: wilayahKerja,
+      lokasi_penempatan: lokasiPenempatan,
     };
   }
 
-  async updatePpnsUploadIdPpns(id_surat: number, id_ppns: number, userId: number) {
+  async updatePpnsUploadIdPpns(
+    id_surat: number,
+    id_ppns: number,
+    userId: number,
+  ) {
     console.log('DEBUG updatePpnsUploadIdPpns:', { id_surat, id_ppns });
 
     const updated = await this.prismaService.ppnsUpload.updateMany({
       where: {
         id_surat,
         OR: [
-          { id_ppns: null }, // kalau NULL
-          { id_ppns: 0 }, // kalau default-nya 0
-          { id_ppns: userId }, // atau masih pakai userId sementara
+          { id_data_ppns: null }, // kalau NULL
+          { id_data_ppns: 0 }, // kalau default-nya 0
+          { id_data_ppns: userId }, // atau masih pakai userId sementara
         ],
       },
-      data: { id_ppns },
+      data: { id_data_ppns: id_ppns },
     });
 
     console.log('DEBUG update result:', updated);
@@ -454,7 +496,7 @@ export class SuratRepository {
     idTransaksi: number,
     dataUpload: {
       id_surat: number;
-      id_ppns: number;
+      id_ppns: number | null;
       file_type: string;
       original_name: string;
       keterangan?: string;
@@ -462,16 +504,28 @@ export class SuratRepository {
       mime_type?: string;
       file_size?: number;
       status?: string;
+      id_file_type?: number | null;
     }[],
   ) {
+    // ✅ 1. Pastikan id_surat valid
+    const surat = await this.prismaService.ppnsSurat.findUnique({
+      where: { id: idTransaksi },
+    });
+
+    if (!surat) {
+      throw new Error(
+        `❌ Gagal menyimpan upload: id_surat ${idTransaksi} tidak ditemukan di tabel PpnsSurat`,
+      );
+    }
+
     for (const d of dataUpload) {
-      // skip kalau semua field file kosong/null
+      // ✅ 2. Pastikan data upload tidak kosong
       if (!d.s3_key || !d.original_name) {
-        console.log(`Skip update untuk file_type ${d.file_type}, data null`);
+        console.log(`⏭ Skip file_type ${d.file_type}, karena file kosong`);
         continue;
       }
 
-      // cek apakah record dengan id_transaksi + file_type sudah ada
+      // ✅ 3. Cari existing berdasarkan id_surat (idTransaksi) dan file_type
       const existing = await this.prismaService.ppnsUpload.findFirst({
         where: {
           id_surat: idTransaksi,
@@ -480,12 +534,15 @@ export class SuratRepository {
       });
 
       if (existing) {
-        // update hanya dengan data baru (tidak overwrite dengan null)
+        // ✅ 4. Update existing upload (hanya field yang ada nilai)
         await this.prismaService.ppnsUpload.update({
           where: { id: existing.id },
           data: {
-            id_surat: d.id_surat,
-            id_ppns: d.id_ppns,
+            id_surat: idTransaksi, // selalu pakai idTransaksi
+            id_data_ppns: d.id_ppns ?? existing.id_data_ppns,
+            id_file_type: d.id_file_type
+              ? Number(d.id_file_type)
+              : existing.id_file_type,
             file_type: this.cleanString(d.file_type) ?? existing.file_type,
             original_name:
               this.cleanString(d.original_name) ?? existing.original_name,
@@ -493,16 +550,17 @@ export class SuratRepository {
             keterangan: this.cleanString(d.keterangan) ?? existing.keterangan,
             s3_key: this.cleanString(d.s3_key) ?? existing.s3_key,
             mime_type: this.cleanString(d.mime_type) ?? existing.mime_type,
-            file_size: d.file_size ?? 0,
+            file_size: d.file_size ?? existing.file_size ?? 0,
             uploaded_at: new Date(),
           },
         });
       } else {
-        // insert baru kalau belum ada sama sekali
+        // ✅ 5. Insert baru
         await this.prismaService.ppnsUpload.create({
           data: {
-            id_surat: d.id_surat,
-            id_ppns: d.id_ppns,
+            id_surat: idTransaksi, // selalu valid karena kita sudah cek di atas
+            id_data_ppns: d.id_ppns,
+            id_file_type: d.id_file_type,
             file_type: this.cleanString(d.file_type) ?? '',
             original_name: this.cleanString(d.original_name) ?? '',
             status: this.normalizeStatus(d.status),
@@ -516,7 +574,7 @@ export class SuratRepository {
       }
     }
 
-    return { message: 'Upload dokumen berhasil disimpan/diupdate' };
+    return { message: '✅ Upload dokumen berhasil disimpan/diupdate' };
   }
 
   private normalizeStatus(status?: string): status_upload_ii | null {

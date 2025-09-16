@@ -53,12 +53,12 @@ export class ListCalonPemohon {
   jabatan: string | null;
   pangkat_atau_golongan: string | null;
   jenis_kelamin: string | null;
-  agama: string | null;
+  agama: number | null;
   nama_sekolah: string | null;
   gelar_terakhir: string | null;
   no_ijazah: string | null;
   tgl_ijazah: string | null; // ISO date string
-  tahun_lulus: number | null;
+  tahun_lulus: string | null;
   ppns_wilayah_kerja?: ListWilayahKerja[] | null;
 }
 
@@ -66,8 +66,5 @@ export class ListWilayahKerja {
   id: number | null;
   id_ppns: number | null;
   id_surat: number | null;
-  id_provinsi: number | null;
-  id_kabkota: number | null;
-  id_kecamatan: number | null;
   uu_dikawal: string[] | null;
 }

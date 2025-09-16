@@ -22,7 +22,7 @@ import { FileUploadService } from 'src/file-upload/file-upload.service';
 import { FileUploadRepository } from 'src/file-upload/file-upload.repository';
 import { PermohonanVerifikasiRepository } from './permohonan-verifikasi.repository';
 import { S3Service } from 'src/common/s3.service';
-import { status_upload_ii, Prisma } from '.prisma/main-client';
+import { upload_status_enum, Prisma } from '.prisma/main-client';
 import { PpnsUploadDto } from 'src/file-upload/dto/upload.dto';
 import { SuratRepository } from 'src/surat/surat.repository';
 
@@ -91,7 +91,7 @@ export class PermohonanVerifikasiService {
         : null,
       // gelar_terakhir: createRequest.pendidikan_terakhir.gelar_terakhir,
       teknis_operasional_penegak_hukum:
-        createRequest.teknis_operasional_penegak_hukum ? '1' : '0',
+        createRequest.teknis_operasional_penegak_hukum,
       jabatan: createRequest.jabatan,
       nama_rs: createRequest.surat_sehat_jasmani_rohani.nama_rs,
       tgl_surat_rs: createRequest.surat_sehat_jasmani_rohani.tgl_surat_rs
@@ -102,31 +102,41 @@ export class PermohonanVerifikasiService {
       tahun_2: createRequest.dp3.tahun_2,
       nilai_2: createRequest.dp3.nilai_2,
     };
-
     //cek data pppns
     const existingPpnsVerifikasiPns =
       await this.permohonanVerifikasiRepository.findPpnsVerifikasiPnsById(
         createRequest.id_data_ppns,
       );
+    console.log('existingPpnsVerifikasiPns', existingPpnsVerifikasiPns);
 
     let result;
 
     if (existingPpnsVerifikasiPns) {
       //update
+      if (
+        existingPpnsDataPns.id_surat === null ||
+        existingPpnsDataPns.id_surat === undefined
+      ) {
+        throw new BadRequestException(
+          'id_surat pada data PNS tidak boleh null',
+        );
+      }
       result =
         await this.permohonanVerifikasiRepository.updatePpnsVerifikasiPns(
           existingPpnsVerifikasiPns.id,
+          existingPpnsDataPns.id_surat,
           {
             ...createData,
           },
         );
-    } else {
-      // create data calon ppns
-      result =
-        await this.permohonanVerifikasiRepository.savePpnsVerifikasiPns(
-          createData,
-        );
     }
+    // else {
+    //   // create data calon ppns
+    //   result =
+    //     await this.permohonanVerifikasiRepository.savePpnsVerifikasiPns(
+    //       createData,
+    //     );
+    // }
 
     //update column nama_sekolah , gelar_terakhir, no_ijazah, tgl_ijazah, tahun_lulus di ppns_data_pns
     await Prisma.validator<Prisma.PpnsDataPnsUpdateInput>()({
@@ -205,8 +215,12 @@ export class PermohonanVerifikasiService {
     const dataUploadDB: PpnsUploadDto[] = [];
 
     if (request.dok_verifikasi_sk_masa_kerja) {
+      const masterFile =
+        await this.fileUploadRepository.getMasterPpnsUploadByIdByName(
+          'verifikasi_sk_masa_kerja',
+        );
       const existing = await this.fileUploadRepository.findFilePpnsUpload(
-        'verifikasi-sk-masa-kerja',
+        'verifikasi_sk_masa_kerja',
         existingSurat.id,
         existingPpnsDataPns.id,
       );
@@ -218,21 +232,25 @@ export class PermohonanVerifikasiService {
       );
       const upload = await this.fileUploadService.handleUpload(
         request.dok_verifikasi_sk_masa_kerja,
-        'verifikasi-sk-masa-kerja',
+        'verifikasi_sk_masa_kerja',
         existingSurat.id,
         existingPpnsDataPns.id,
         'verifikasi',
-        existingSurat.id_layanan || null,
-        'verifikasi-sk-masa-kerja',
-        status_upload_ii.pending,
+        masterFile ? masterFile.id : null,
+        'verifikasi_sk_masa_kerja',
+        upload_status_enum.pending,
       );
 
       dataUploadDB.push(upload);
     }
 
     if (request.dok_verifikasi_sk_pangkat) {
+      const masterFile =
+        await this.fileUploadRepository.getMasterPpnsUploadByIdByName(
+          'verifikasi_sk_pangkat',
+        );
       const existing = await this.fileUploadRepository.findFilePpnsUpload(
-        'verifikasi-sk-pangkat',
+        'verifikasi_sk_pangkat',
         existingSurat.id,
         existingPpnsDataPns.id,
       );
@@ -243,20 +261,24 @@ export class PermohonanVerifikasiService {
       );
       const upload = await this.fileUploadService.handleUpload(
         request.dok_verifikasi_sk_pangkat,
-        'verifikasi-sk-pangkat',
+        'verifikasi_sk_pangkat',
         existingSurat.id,
         existingPpnsDataPns.id,
         'verifikasi',
-        existingSurat.id_layanan || null,
-        'verifikasi-sk-pangkat',
-        status_upload_ii.pending,
+        masterFile ? masterFile.id : null,
+        'verifikasi_sk_pangkat',
+        upload_status_enum.pending,
       );
       dataUploadDB.push(upload);
     }
 
     if (request.dok_verifikasi_ijazah) {
+      const masterFile =
+        await this.fileUploadRepository.getMasterPpnsUploadByIdByName(
+          'verifikasi_ijazah',
+        );
       const existing = await this.fileUploadRepository.findFilePpnsUpload(
-        'verifikasi-ijazah',
+        'verifikasi_ijazah',
         existingSurat.id,
         existingPpnsDataPns.id,
       );
@@ -267,20 +289,24 @@ export class PermohonanVerifikasiService {
       );
       const upload = await this.fileUploadService.handleUpload(
         request.dok_verifikasi_ijazah,
-        'verifikasi-ijazah',
+        'verifikasi_ijazah',
         existingSurat.id,
         existingPpnsDataPns.id,
         'verifikasi',
-        existingSurat.id_layanan || null,
-        'verifikasi-ijazah',
-        status_upload_ii.pending,
+        masterFile ? masterFile.id : null,
+        'verifikasi_ijazah',
+        upload_status_enum.pending,
       );
       dataUploadDB.push(upload);
     }
 
     if (request.dok_verifikasi_sk_jabatan_teknis_oph) {
+      const masterFile =
+        await this.fileUploadRepository.getMasterPpnsUploadByIdByName(
+          'verifikasi_sk_jabatan_teknis_oph',
+        );
       const existing = await this.fileUploadRepository.findFilePpnsUpload(
-        'verifikasi-sk-jabatan-teknis-oph',
+        'verifikasi_sk_jabatan_teknis_oph',
         existingSurat.id,
         existingPpnsDataPns.id,
       );
@@ -291,20 +317,25 @@ export class PermohonanVerifikasiService {
       );
       const upload = await this.fileUploadService.handleUpload(
         request.dok_verifikasi_sk_jabatan_teknis_oph,
-        'verifikasi-sk-jabatan-teknis-oph',
+        'verifikasi_sk_jabatan_teknis_oph',
         existingSurat.id,
         existingPpnsDataPns.id,
         'verifikasi',
-        existingSurat.id_layanan || null,
-        'verifikasi-sk-jabatan-teknis-oph',
-        status_upload_ii.pending,
+        masterFile ? masterFile.id : null,
+        'verifikasi_sk_jabatan_teknis_oph',
+        upload_status_enum.pending,
       );
       dataUploadDB.push(upload);
     }
 
     if (request.dok_verifikasi_sehat_jasmani) {
+      const masterFile =
+        await this.fileUploadRepository.getMasterPpnsUploadByIdByName(
+          'verifikasi_sehat_jasmani',
+        );
+
       const existing = await this.fileUploadRepository.findFilePpnsUpload(
-        'verifikasi-sehat-jasmani',
+        'verifikasi_sehat_jasmani',
         existingSurat.id,
         existingPpnsDataPns.id,
       );
@@ -315,20 +346,24 @@ export class PermohonanVerifikasiService {
       );
       const upload = await this.fileUploadService.handleUpload(
         request.dok_verifikasi_sehat_jasmani,
-        'verifikasi-sehat-jasmani',
+        'verifikasi_sehat_jasmani',
         existingSurat.id,
         existingPpnsDataPns.id,
         'verifikasi',
-        existingSurat.id_layanan || null,
-        'verifikasi-sehat-jasmani',
-        status_upload_ii.pending,
+        masterFile ? masterFile.id : null,
+        'verifikasi_sehat_jasmani',
+        upload_status_enum.pending,
       );
       dataUploadDB.push(upload);
     }
 
     if (request.dok_verifikasi_penilaian_pekerjaan) {
+      const masterFile =
+        await this.fileUploadRepository.getMasterPpnsUploadByIdByName(
+          'verifikasi_penilaian_pekerjaan',
+        );
       const existing = await this.fileUploadRepository.findFilePpnsUpload(
-        'verifikasi-penilaian-pekerjaan',
+        'verifikasi_penilaian_pekerjaan',
         existingSurat.id,
         existingPpnsDataPns.id,
       );
@@ -339,14 +374,14 @@ export class PermohonanVerifikasiService {
       );
       const upload = await this.fileUploadService.handleUpload(
         request.dok_verifikasi_penilaian_pekerjaan,
-        'verifikasi-penilaian-pekerjaan',
+        'verifikasi_penilaian_pekerjaan',
         existingSurat.id,
 
         existingPpnsDataPns.id,
         'verifikasi',
-        existingSurat.id_layanan || null,
-        'verifikasi-penilaian-pekerjaan',
-        status_upload_ii.pending,
+        masterFile ? masterFile.id : null,
+        'verifikasi_penilaian_pekerjaan',
+        upload_status_enum.pending,
       );
       dataUploadDB.push(upload);
     }
@@ -358,6 +393,7 @@ export class PermohonanVerifikasiService {
         dataUploadDB.map((d) => ({
           ...d,
           id_ppns: d.id_ppns ?? 0, // fallback to 0 if null
+          id_file_type: d.master_file_id ?? null,
         })),
       );
     }

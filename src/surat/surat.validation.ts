@@ -96,35 +96,36 @@ export class SuratValidation {
       nama: z.string().min(1, 'Nama is required'),
       nip: z.string().min(1, 'NIP is required'),
       nama_gelar: z.string().min(1, 'Nama Gelar is required'),
+      gelar_depan: z.string().min(1, 'Gelar Depan is required'),
+      gelar_belakang: z.string().min(1, 'Gelar Belakang is required'),
       jabatan: z.string().min(1, 'Jabatan is required'),
       pangkat_golongan: z.string().min(1, 'Pangkat Golongan is required'),
-      jenis_kelamin: z.enum(['Laki-laki', 'Perempuan'], {
-        message: 'Jenis Kelamin must be Laki-laki or Perempuan',
+      jenis_kelamin: z.enum(['Pria', 'Wanita'], {
+        message: 'Jenis Kelamin must be Pria atau Wanita',
       }),
-      agama: z.enum(
-        [
-          'Islam',
-          'Kristen Protestan',
-          'Katolik',
-          'Hindu',
-          'Buddha',
-          'Konghucu',
-        ],
-        {
-          message:
-            'Agama must be one of (Islam, Kristen Protestan, Katolik, Hindu, Buddha, Konghucu)',
-        },
-      ),
+      agama: z.number(),
+      // agama: z.enum(
+      //   [
+      //     'Islam',
+      //     'Kristen Protestan',
+      //     'Katolik',
+      //     'Hindu',
+      //     'Buddha',
+      //     'Konghucu',
+      //   ],
+      //   {
+      //     message:
+      //       'Agama must be one of (Islam, Kristen Protestan, Katolik, Hindu, Buddha, Konghucu)',
+      //   },
+      // ),
     }),
     wilayah_kerja: z
       .array(
         z.object({
-          provinsi_penempatan: z
-            .string()
-            .min(1, 'Provinsi Penempatan is required'),
-          kabupaten_penempatan: z
-            .string()
-            .min(1, 'Kabupaten Penempatan is required'),
+          provinsi: z.string().min(1, 'Provinsi is required'),
+          kab_kota: z.string().min(1, 'Kabupaten/kota is required'),
+          kecamatan: z.string().min(1, 'Kecamatan is required'),
+
           unit_kerja: z.string().min(1, 'Unit Kerja is required'),
           penempatan_baru: z.boolean(),
           uu_dikawal: z
@@ -134,6 +135,11 @@ export class SuratValidation {
         }),
       )
       .min(1, 'Minimal harus ada 1 wilayah kerja'),
+    lokasi_penempatan: z.object({
+      provinsi_penempatan: z.number(),
+      kabupaten_penempatan: z.number(),
+      unit_kerja: z.string().min(1, 'Unit Kerja is required'),
+    }),
   });
 
   static readonly CREATE_CALON_PPNS_STEP2: ZodType = z.object({

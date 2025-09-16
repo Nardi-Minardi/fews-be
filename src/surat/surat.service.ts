@@ -24,7 +24,11 @@ import { FileUploadService } from 'src/file-upload/file-upload.service';
 import { FileUploadRepository } from 'src/file-upload/file-upload.repository';
 import { SuratRepository } from './surat.repository';
 import { S3Service } from 'src/common/s3.service';
-import { status_upload_ii, Prisma } from '.prisma/main-client';
+import {
+  upload_status_enum,
+  Prisma,
+  jenis_kelamin_enum,
+} from '.prisma/main-client';
 import { PpnsUploadDto } from 'src/file-upload/dto/upload.dto';
 import { validateWilayah } from 'src/common/utils/validateWilayah';
 import { DataMasterRepository } from 'src/data-master/data-master.repository';
@@ -74,7 +78,7 @@ export class SuratService {
       case 'verifikasi':
         dataLayanan =
           await this.layananRepository.findLayananByNama('verifikasi');
-       
+
         namePrefixUpload = 'verifikasi';
         break;
 
@@ -186,9 +190,9 @@ export class SuratService {
       }
 
       const existing = await this.fileUploadRepository.findFilePpnsUpload(
-        'dokumen-surat-pernyataan',
-        result.id,
-        result.id_user,
+        'dokumen_surat_pernyataan',
+        Number(result.id),
+        Number(result.id_user),
       );
 
       await Promise.all(
@@ -198,13 +202,13 @@ export class SuratService {
       );
       const upload = await this.fileUploadService.handleUpload(
         request.dok_surat_pernyataan,
-        'dokumen-surat-pernyataan',
+        'dokumen_surat_pernyataan',
         result.id,
         null,
         namePrefixUpload,
         dataLayanan?.id,
-        'dokumen-surat-pernyataan',
-        status_upload_ii.pending,
+        'dokumen_surat_pernyataan',
+        upload_status_enum.pending,
       );
 
       dataUploadDB.push(upload);
@@ -216,24 +220,36 @@ export class SuratService {
         result.id,
         dataUploadDB.map((d) => ({
           ...d,
-          id_ppns: userLogin.user_id,
+          id_ppns: null,
+          id_surat: Number(result.id),
+          id_file_type: null,
         })),
       );
     }
 
     // ✅ ambil ulang file upload dari DB supaya data pasti sudah tersimpan
     const dok_pernyataan = await this.fileUploadRepository.findFilePpnsUpload(
-      'dokumen-surat-pernyataan',
+      'dokumen_surat_pernyataan',
       Number(result.id),
       Number(result.id_user),
     );
 
     // mapping hasil ke DTO (pastikan tanggal diubah ke ISO string)
     const response: CreateResponseSuratDto = {
-      ...result,
-      no_surat: result.no_surat ?? '',
-      tgl_surat: result.tgl_surat ? result.tgl_surat.toISOString() : '',
-      created_at: result.created_at ? result.created_at.toISOString() : '',
+      id: result.id || null,
+      id_user: result.id_user || null,
+      id_layanan: result.id_layanan || null,
+      lembaga_kementerian: result.lembaga_kementerian || null,
+      instansi: result.instansi || null,
+      no_surat: result.no_surat || null,
+      tgl_surat: result.tgl_surat ? result.tgl_surat.toISOString() : null,
+      perihal: result.perihal || null,
+      nama_pengusul: result.nama_pengusul || null,
+      jabatan_pengusul: result.jabatan_pengusul || null,
+      status: result.status,
+      created_at: result.created_at ? result.created_at.toISOString() : null,
+      created_by: result.created_by || null,
+      verifikator_by: result.verifikator_by || null,
       verifikator_at: result.verifikator_at
         ? result.verifikator_at.toISOString()
         : null,
@@ -312,6 +328,7 @@ export class SuratService {
     };
   }
 
+  //butuh validasi pangkat golongan nanti
   async storeCalonPpns(
     request: any,
     authorization?: string,
@@ -340,7 +357,7 @@ export class SuratService {
     }
 
     const existingSurat = await this.suratRepository.findPpnSuratById(
-      createRequest.id_surat,
+      Number(createRequest.id_surat),
     );
 
     if (!existingSurat) {
@@ -367,32 +384,49 @@ export class SuratService {
       },
     });
 
+    //validasi pangkat golongan
+    const pangkatGolongan = await this.dataMasterRepository.findPangkatGolonganById(
+      Number(createRequest.identitas_pns.pangkat_golongan),
+    );
+
+    if (!pangkatGolongan) {
+      throw new NotFoundException(
+        `Pangkat Golongan with ID ${createRequest.identitas_pns.pangkat_golongan} not found`,
+      );
+    }
+
     //validasi wilayah kerja
     await Promise.all(
       createRequest.wilayah_kerja.map((w: any) =>
         validateWilayah(this.dataMasterRepository, {
-          idProvinsi: w.provinsi_penempatan,
-          idKabupaten: w.kabupaten_penempatan,
-          idKecamatan: w.id_kecamatan || undefined,
-          idKelurahan: w.id_kelurahan || undefined,
+          idProvinsi: w.provinsi,
+          idKabupaten: w.kab_kota,
+          idKecamatan: w.kecamatan,
+          idKelurahan: w.kelurahan || undefined,
         }),
       ),
     );
 
     const createData = {
-      id_surat: createRequest.id_surat,
       nama: createRequest.identitas_pns.nama,
       nip: createRequest.identitas_pns.nip,
       nama_gelar: createRequest.identitas_pns.nama_gelar,
       jabatan: createRequest.identitas_pns.jabatan,
-      pangkat_atau_golongan: createRequest.identitas_pns.pangkat_golongan,
-      jenis_kelamin: createRequest.identitas_pns.jenis_kelamin,
+      pangkat_golongan: createRequest.identitas_pns.pangkat_golongan,
+      jenis_kelamin: this.mapJenisKelamin(
+        createRequest.identitas_pns.jenis_kelamin,
+      ),
       agama: createRequest.identitas_pns.agama,
-      nama_sekolah: createRequest.identitas_pns.nama_sekolah,
-      gelar_terakhir: createRequest.identitas_pns.gelar_terakhir,
-      no_ijazah: createRequest.identitas_pns.no_ijazah,
-      tgl_ijazah: createRequest.identitas_pns.tgl_ijazah, // sudah Date dari Zod
-      tahun_lulus: createRequest.identitas_pns.tahun_lulus,
+      // nama_sekolah: createRequest.identitas_pns.nama_sekolah,
+      // gelar_terakhir: createRequest.identitas_pns.gelar_terakhir,
+      // no_ijazah: createRequest.identitas_pns.no_ijazah,
+      // tgl_ijazah: createRequest.identitas_pns.tgl_ijazah, // sudah Date dari Zod
+      // tahun_lulus: createRequest.identitas_pns.tahun_lulus,
+      is_ppns: false,
+
+      ppns_surat: {
+        connect: { id: createRequest.id_surat },
+      },
 
       // nested create relasi
       ppns_wilayah_kerja: {
@@ -401,10 +435,7 @@ export class SuratService {
           return {
             id_surat: createRequest.id_surat,
             id_layanan: surat?.id_layanan || null,
-            provinsi_penempatan: w.provinsi_penempatan,
-            kabupaten_penempatan: w.kabupaten_penempatan,
-            unit_kerja: w.unit_kerja,
-            penempatan_baru: w.penempatan_baru ? '1' : '0',
+            penempatan_baru: w.penempatan_baru,
             uu_dikawal_1: uu1 ?? null,
             uu_dikawal_2: uu2 ?? null,
             uu_dikawal_3: uu3 ?? null,
@@ -448,14 +479,21 @@ export class SuratService {
     // } else {
     // }
     // create data calon ppns
-    result = await this.suratRepository.savePpnsDataPns(createData);
+    result = await this.suratRepository.savePpnsDataPns({
+      ...createData,
+      provinsi_penempatan: createRequest.lokasi_penempatan.provinsi_penempatan,
+      kabupaten_penempatan:
+        createRequest.lokasi_penempatan.kabupaten_penempatan,
+      unit_kerja: createRequest.lokasi_penempatan.unit_kerja,
+      created_by: userLogin.user_id,
+    });
 
     //update id_ppns di ppns_upload yang id_ppns null dan id_surat sama dengan createRequest.id_surat
-    await this.suratRepository.updatePpnsUploadIdPpns(
-      Number(createRequest.id_surat),
-      Number(result.id),
-      userLogin.user_id,
-    );
+    // await this.suratRepository.updatePpnsUploadIdPpns(
+    //   Number(createRequest.id_surat),
+    //   Number(result.id),
+    //   userLogin.user_id,
+    // );
 
     return result;
   }
@@ -525,10 +563,22 @@ export class SuratService {
           ? item.verifikator_at.toISOString()
           : null,
         id_layanan: item.id_layanan ?? null,
-        nama_kementerian: item.ppns_kementerian ? item.ppns_kementerian.nama : null,
+        nama_kementerian: item.ppns_kementerian
+          ? item.ppns_kementerian.nama
+          : null,
         nama_instansi: item.ppns_instansi ? item.ppns_instansi.nama : null,
       })),
       pagination,
     };
+  }
+
+  private mapJenisKelamin(
+    value: string | null | undefined,
+  ): jenis_kelamin_enum | null {
+    if (!value) return null;
+    const lower = value.toLowerCase();
+    if (lower === 'pria') return 'pria';
+    if (lower === 'wanita') return 'wanita';
+    return null; // fallback kalau invalid
   }
 }

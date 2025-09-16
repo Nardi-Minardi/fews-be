@@ -233,7 +233,7 @@ export class PelantikanService {
       tgl_ijazah: createRequest.tgl_ijazah
         ? dateOnlyToLocal(createRequest.tgl_ijazah)
         : null,
-      tahun_lulus: Number(createRequest.tahun_lulus),
+      tahun_lulus: createRequest.tahun_lulus,
     });
     await this.suratRepository.updatePpnsDataPns(existingPpnsDataPns.id, {
       nama_sekolah: createRequest.nama_sekolah,
@@ -242,7 +242,7 @@ export class PelantikanService {
       tgl_ijazah: createRequest.tgl_ijazah
         ? dateOnlyToLocal(createRequest.tgl_ijazah)
         : null,
-      tahun_lulus: Number(createRequest.tahun_lulus),
+      tahun_lulus: createRequest.tahun_lulus,
     });
 
     // ✅ ambil ulang file upload dari DB supaya data pasti sudah tersimpan

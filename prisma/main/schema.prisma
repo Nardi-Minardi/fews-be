@@ -18,6 +18,7 @@ model PpnsKementerian {
   id         Int       @id @default(autoincrement())
   nama       String?   @db.VarChar(255)
   created_at DateTime? @default(now()) @db.Timestamp(6)
+  id_lama    Int?      @db.Integer
 
   ppns_instansi PpnsInstansi[] @relation("MasterKementerianToInstansi")
   ppns_surat    PpnsSurat[]    @relation("PpnsKementerianToSurat")
@@ -26,10 +27,11 @@ model PpnsKementerian {
 }
 
 model PpnsInstansi {
-  id             Int       @id @default(autoincrement())
-  id_kementerian Int?      @db.Integer
-  nama           String?   @db.VarChar(255)
-  created_at     DateTime? @default(now()) @db.Timestamp(6)
+  id                 Int       @id @default(autoincrement())
+  id_kementerian     Int?      @db.Integer
+  nama               String?   @db.VarChar(255)
+  created_at         DateTime? @default(now()) @db.Timestamp(6)
+  id_kementrian_lama Int?      @db.Integer
 
   ppns_kementerian PpnsKementerian? @relation("MasterKementerianToInstansi", fields: [id_kementerian], references: [id])
   ppns_surat       PpnsSurat[]      @relation("PpnsInstansiToSurat")
@@ -42,7 +44,20 @@ model PpnsTypeFile {
   nama       String?   @db.VarChar(255)
   created_at DateTime? @default(now()) @db.Timestamp(6)
 
+  //one-to-many relation ppns upload
+  ppns_upload PpnsUpload[] @relation("PpnsTypeFileToUpload")
+
   @@map("m_ppns_type_file")
+}
+
+model PpnsPangkatGolongan {
+  id            Int       @id @default(autoincrement())
+  kode_golongan String?   @db.VarChar(255)
+  nama_pangkat  String?   @db.VarChar(255)
+  created_at    DateTime? @default(now()) @db.Timestamp(6)
+  updated_at    DateTime? @db.Timestamp(6)
+
+  @@map("m_pangkat_golongan")
 }
 
 model PpnsLayanan {
@@ -55,27 +70,6 @@ model PpnsLayanan {
   ppns_wilayah_kerja WilayahKerja[] @relation("PpnsLayananToWilayahKerja")
 
   @@map("m_ppns_layanan")
-}
-
-model PpnsDataPpns {
-  id                    Int       @id @default(autoincrement())
-  id_surat              Int?      @db.Integer
-  nama                  String?   @db.VarChar(255)
-  nip                   String?   @db.VarChar(255)
-  nama_gelar            String?   @db.VarChar(255)
-  jabatan               String?   @db.VarChar(255)
-  pangkat_atau_golongan String?   @db.VarChar(255)
-  jenis_kelamin         String?   @db.VarChar(255)
-  agama                 String?   @db.VarChar(255)
-  nama_sekolah          String?   @db.VarChar(255)
-  gelar_terakhir        String?   @db.VarChar(255)
-  no_ijazah             String?   @db.VarChar(255)
-  tgl_ijazah            DateTime? @db.Date
-  tahun_lulus           Int?      @db.Integer
-  data_baru             String?   @db.VarChar(255)
-  aktif                 String?   @db.VarChar(255)
-
-  @@map("tr_ppns_data_ppns")
 }
 
 model PpnsMutasi {
@@ -313,73 +307,70 @@ model PpnsSurat {
   ppns_kementerian PpnsKementerian? @relation("PpnsKementerianToSurat", fields: [lembaga_kementerian], references: [id])
   ppns_instansi    PpnsInstansi?    @relation("PpnsInstansiToSurat", fields: [instansi], references: [id])
   ppns_layanan     PpnsLayanan?     @relation("PpnsSuratToLayanan", fields: [id_layanan], references: [id])
-  ppns_upload      PpnsUpload?      @relation("PpnsUploadToSurat")
+  ppns_upload      PpnsUpload[]     @relation("PpnsUploadToSurat")
   ppns_data_pns    PpnsDataPns[]    @relation("PpnsDataToSurat")
 
   @@map("tr_ppns_surat")
 }
 
 model PpnsUpload {
-  id             Int               @id @default(autoincrement())
-  id_surat       Int?              @unique @db.Integer
-  id_ppns        Int?              @db.Integer
-  file_type      String?           @db.VarChar(255)
-  original_name  String?           @db.VarChar(255)
-  status         status_upload_ii?
-  keterangan     String?           @db.Text
-  s3_key         String?           @db.VarChar(255)
-  mime_type      String?           @db.VarChar(255)
-  file_size      Int?              @db.Integer
-  uploaded_at    DateTime          @default(now()) @db.Timestamp(6)
-  verifikator_by Int?              @db.Integer
-  verifikator_at DateTime?         @db.Timestamp(6)
+  id             Int                 @id @default(autoincrement())
+  id_surat       Int?                @db.Integer
+  id_data_ppns   Int?                @db.Integer
+  id_file_type   Int?                @db.Integer
+  file_type      String?             @db.VarChar(255)
+  original_name  String?             @db.VarChar(255)
+  status         upload_status_enum?
+  keterangan     String?             @db.Text
+  s3_key         String?             @db.VarChar(255)
+  mime_type      String?             @db.VarChar(255)
+  file_size      Int?                @db.Integer
+  uploaded_at    DateTime            @default(now()) @db.Timestamp(6)
+  verifikator_by Int?                @db.Integer
+  verifikator_at DateTime?           @db.Timestamp(6)
 
   // Relasi
-  ppns_surat PpnsSurat? @relation("PpnsUploadToSurat", fields: [id_surat], references: [id])
+  ppns_surat       PpnsSurat?    @relation("PpnsUploadToSurat", fields: [id_surat], references: [id])
+  ppns_m_type_file PpnsTypeFile? @relation("PpnsTypeFileToUpload", fields: [id_file_type], references: [id])
 
   @@map("tr_ppns_upload")
 }
 
 //ini calon pemohon
 model PpnsDataPns {
-  id                    Int       @id @default(autoincrement())
-  id_surat              Int?      @db.Integer
-  nama                  String?   @db.VarChar(255)
-  nip                   String?   @db.VarChar(255)
-  nama_gelar            String?   @db.VarChar(255)
-  jabatan               String?   @db.VarChar(255)
-  pangkat_atau_golongan String?   @db.VarChar(255)
-  jenis_kelamin         String?   @db.VarChar(255)
-  agama                 String?   @db.VarChar(255)
-  nama_sekolah          String?   @db.VarChar(255)
-  gelar_terakhir        String?   @db.VarChar(255)
-  no_ijazah             String?   @db.VarChar(255)
-  tgl_ijazah            DateTime? @db.Date
-  tahun_lulus           Int?      @db.Integer
+  id               Int                 @id @default(autoincrement())
+  id_surat         Int?                @db.Integer
+  nama             String?             @db.VarChar(255)
+  nip              String?             @db.VarChar(255)
+  nama_gelar       String?             @db.VarChar(255)
+  jabatan          String?             @db.VarChar(255)
+  pangkat_golongan String?             @db.VarChar(255)
+  jenis_kelamin    jenis_kelamin_enum?
+  agama            Int?                @db.Integer
+  nama_sekolah     String?             @db.VarChar(255)
+  gelar_terakhir   String?             @db.VarChar(255)
+  no_ijazah        String?             @db.VarChar(255)
+  tgl_ijazah       DateTime?           @db.Date
+  tahun_lulus      String?             @db.VarChar(255)
+  is_ppns          Boolean             @default(false)
 
   // Relasi
-  ppns_surat         PpnsSurat?     @relation("PpnsDataToSurat", fields: [id_surat], references: [id])
-  ppns_wilayah_kerja WilayahKerja[] @relation("PpnsDataPnsToWilayahKerja")
+  ppns_surat           PpnsSurat?          @relation("PpnsDataToSurat", fields: [id_surat], references: [id])
+  ppns_wilayah_kerja   WilayahKerja[]      @relation("PpnsDataPnsToWilayahKerja")
+  ppns_verifikasi_ppns PpnsVerifikasiPpns? @relation("PpnsDataPnsToVerifikasiPpns")
 
-  @@map("tr_ppns_data_pns")
+  @@map("tr_data_ppns")
 }
 
 model WilayahKerja {
-  id                   Int     @id @default(autoincrement())
-  id_layanan           Int?    @db.Integer
-  id_ppns              Int?    @db.Integer
-  id_surat             Int?    @db.Integer
-  id_provinsi          Int?    @db.Integer
-  id_kabkota           Int?    @db.Integer
-  id_kecamatan         Int?    @db.Integer
-  provinsi_penempatan  String? @db.VarChar(255)
-  kabupaten_penempatan String? @db.VarChar(255)
-  kecamatan_penempatan String? @db.VarChar(255)
-  unit_kerja           String? @db.VarChar(255)
-  penempatan_baru      String? @db.VarChar(255)
-  uu_dikawal_1         String? @db.VarChar(255)
-  uu_dikawal_2         String? @db.VarChar(255)
-  uu_dikawal_3         String? @db.VarChar(255)
+  id              Int     @id @default(autoincrement())
+  id_layanan      Int?    @db.Integer
+  id_ppns         Int?    @db.Integer
+  id_surat        Int?    @db.Integer
+  penempatan_baru Boolean @default(false)
+  uu_dikawal_1    String? @db.VarChar(255)
+  uu_dikawal_2    String? @db.VarChar(255)
+  uu_dikawal_3    String? @db.VarChar(255)
 
   ppns_data_pns PpnsDataPns? @relation("PpnsDataPnsToWilayahKerja", fields: [id_ppns], references: [id])
   ppns_layanan  PpnsLayanan? @relation("PpnsLayananToWilayahKerja", fields: [id_layanan], references: [id])
@@ -389,72 +380,60 @@ model WilayahKerja {
 
 //permohonan verifkasi
 model PpnsVerifikasiPpns {
-  id                               Int          @id @default(autoincrement())
-  id_data_ppns                     Int?         @db.Integer
-  tgl_pengangkatan_sk_pns          DateTime?    @db.Date
-  sk_kenaikan_pangkat              String?      @db.VarChar(255)
-  nama_sekolah                     String?      @db.VarChar(255)
-  no_ijazah                        String?      @db.VarChar(255)
-  tgl_ijazah                       DateTime?    @db.Date
-  tgl_lulus                        DateTime?    @db.Date
-  teknis_operasional_penegak_hukum String?      @db.VarChar(255)
-  jabatan                          String?      @db.VarChar(255)
-  nama_rs                          String?      @db.VarChar(255)
-  tgl_surat_rs                     DateTime?    @db.Date
-  tahun_1                          Int?         @db.Integer
-  nilai_1                          Decimal?     @db.Decimal(18, 2)
-  tahun_2                          Int?         @db.Integer
-  nilai_2                          Decimal?     @db.Decimal(18, 2)
-  verifikator_1_by                 Int?         @db.Integer
-  verifikator_1_at                 DateTime?    @db.Timestamp(6)
-  status_1                         status_enum?
-  verifikator_2_by                 Int?         @db.Integer
-  verifikator_2_at                 DateTime?    @db.Timestamp(6)
-  status_2                         status_enum?
-  verifikator_3_by                 Int?         @db.Integer
-  verifikator_3_at                 DateTime?    @db.Timestamp(6)
-  status_3                         status_enum?
-  verifikator_4_by                 Int?         @db.Integer
-  verifikator_4_at                 DateTime?    @db.Timestamp(6)
-  status_4                         status_enum?
+  id                               Int       @id @default(autoincrement())
+  id_data_ppns                     Int?      @unique @db.Integer
+  tgl_pengangkatan_sk_pns          DateTime? @db.Date
+  sk_kenaikan_pangkat              String?   @db.VarChar(255)
+  nama_sekolah                     String?   @db.VarChar(255)
+  no_ijazah                        String?   @db.VarChar(255)
+  tgl_ijazah                       DateTime? @db.Date
+  tgl_lulus                        DateTime? @db.Date
+  teknis_operasional_penegak_hukum Boolean   @default(false)
+  jabatan                          String?   @db.VarChar(255)
+  nama_rs                          String?   @db.VarChar(255)
+  tgl_surat_rs                     DateTime? @db.Date
+  tahun_1                          String?   @db.VarChar(255)
+  nilai_1                          Int?      @db.Integer
+  tahun_2                          String?   @db.VarChar(255)
+  nilai_2                          Int?      @db.Integer
+  provinsi_penempatan              Int?      @db.Integer
+  kabupaten_penempatan             Int?      @db.Integer
+  unit_kerja                       String?   @db.VarChar(255)
+  created_by                       Int?      @db.Integer
+  created_at                       DateTime? @default(now()) @db.Timestamp(6)
+
+  ppns_data_pns PpnsDataPns? @relation("PpnsDataPnsToVerifikasiPpns", fields: [id_data_ppns], references: [id])
 
   @@map("tr_ppns_verifikasi_ppns")
 }
 
 //pengangkatan ppns
 model PpnsPengangkatan {
-  id                               Int          @id @default(autoincrement())
-  id_surat                         Int?         @db.Integer
-  id_data_ppns                     Int?         @db.Integer
-  nama_sekolah                     String?      @db.VarChar(255)
-  no_ijazah                        String?      @db.VarChar(255)
-  tahun_lulus                      Int?         @db.Integer
-  no_sttpl                         String?      @db.VarChar(255)
-  tgl_sttpl                        DateTime?    @db.Date
-  tgl_ijazah                       DateTime?    @db.Date
-  tgl_verifikasi                   DateTime?    @db.Timestamp(6)
-  cek_surat_polisi                 String?      @db.VarChar(255)
-  no_surat_polisi                  String?      @db.VarChar(255)
-  tgl_surat_polisi                 DateTime?    @db.Date
-  perihal_surat_polisi             String?      @db.VarChar(255)
-  cek_surat_kejaksaan_agung        String?      @db.VarChar(255)
-  no_surat_kejaksaan_agung         String?      @db.VarChar(255)
-  tgl_surat_kejaksaan_agung        DateTime?    @db.Date
-  perihal_surat_kejaksaan_agung    String?      @db.VarChar(255)
-  teknis_operasional_penegak_hukum String?      @db.VarChar(255)
-  jabatan                          String?      @db.VarChar(255)
-  verifikator_1_by                 Int?         @db.Integer
-  verifikator_1_at                 DateTime?    @db.Timestamp(6)
-  status_1                         status_enum?
-  verifikator_2_by                 Int?         @db.Integer
-  verifikator_2_at                 DateTime?    @db.Timestamp(6)
-  status_2                         status_enum?
-  verifikator_3_by                 Int?         @db.Integer
-  verifikator_3_at                 DateTime?    @db.Timestamp(6)
-  status_3                         status_enum?
-  verifikator_4_by                 Int?         @db.Integer
-  verifikator_4_at                 DateTime?    @db.Timestamp(6)
-  status_4                         status_enum?
+  id                               Int       @id @default(autoincrement())
+  id_surat                         Int?      @db.Integer
+  id_data_ppns                     Int?      @db.Integer
+  nama_sekolah                     String?   @db.VarChar(255)
+  no_ijazah                        String?   @db.VarChar(255)
+  tahun_lulus                      Int?      @db.Integer
+  no_sttpl                         String?   @db.VarChar(255)
+  tgl_sttpl                        DateTime? @db.Date
+  tgl_ijazah                       DateTime? @db.Date
+  tgl_verifikasi                   DateTime? @db.Timestamp(6)
+  cek_surat_polisi                 String?   @db.VarChar(255)
+  no_surat_polisi                  String?   @db.VarChar(255)
+  tgl_surat_polisi                 DateTime? @db.Date
+  perihal_surat_polisi             String?   @db.VarChar(255)
+  cek_surat_kejaksaan_agung        String?   @db.VarChar(255)
+  no_surat_kejaksaan_agung         String?   @db.VarChar(255)
+  tgl_surat_kejaksaan_agung        DateTime? @db.Date
+  perihal_surat_kejaksaan_agung    String?   @db.VarChar(255)
+  teknis_operasional_penegak_hukum String?   @db.VarChar(255)
+  jabatan                          String?   @db.VarChar(255)
+  provinsi_penempatan              Int?      @db.Integer
+  kabupaten_penempatan             Int?      @db.Integer
+  unit_kerja                       String?   @db.VarChar(255)
+  created_by                       Int?      @db.Integer
+  created_at                       DateTime? @default(now()) @db.Timestamp(6)
 
   @@map("tr_ppns_pengangkatan")
 }
@@ -502,4 +481,16 @@ enum status_upload_ii {
   tidakSesuai @map("Tidak Sesuai")
   tolak       @map("Tolak")
   pending     @map("Pending")
+}
+
+enum jenis_kelamin_enum {
+  pria   @map("Pria")
+  wanita @map("Wanita")
+}
+
+enum upload_status_enum {
+  sesuai      @map("sesuai")
+  tidakSesuai @map("tidak sesuai")
+  tolak       @map("tolak")
+  pending     @map("pending")
 }

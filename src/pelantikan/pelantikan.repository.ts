@@ -156,7 +156,7 @@ export class PelantikanRepository {
 
     const uploads = await this.prismaService.ppnsUpload.findMany({
       where: {
-        id_ppns: Number(data.id_data_ppns),
+        id_data_ppns: Number(data.id_data_ppns),
         id_surat: idSurat,
         file_type: {
           in: [
@@ -280,7 +280,7 @@ export class PelantikanRepository {
           where: { id: existing.id },
           data: {
             id_surat: d.id_surat,
-            id_ppns: d.id_ppns,
+            id_data_ppns: d.id_ppns,
             file_type: this.cleanString(d.file_type) ?? existing.file_type,
             original_name:
               this.cleanString(d.original_name) ?? existing.original_name,
@@ -297,7 +297,7 @@ export class PelantikanRepository {
         await this.prismaService.ppnsUpload.create({
           data: {
             id_surat: d.id_surat,
-            id_ppns: d.id_ppns,
+            id_data_ppns: d.id_ppns,
             file_type: this.cleanString(d.file_type) ?? '',
             original_name: this.cleanString(d.original_name) ?? '',
             status: this.normalizeStatus(d.status),

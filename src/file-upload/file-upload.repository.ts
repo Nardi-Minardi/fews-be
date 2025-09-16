@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { PpnsUpload, Prisma } from '.prisma/main-client';
+import { PpnsTypeFile, PpnsUpload, Prisma } from '.prisma/main-client';
 import { PrismaService } from 'src/common/prisma.service';
 
 @Injectable()
@@ -17,13 +17,23 @@ export class FileUploadRepository {
     });
   }
 
+  getMasterPpnsUploadByIdByName(nama: string): Promise<PpnsTypeFile | null> {
+    return this.prismaService.ppnsTypeFile.findFirst({
+      where: { nama },
+    });
+  }
+
   findFilePpnsUpload(
     file_type: string,
     id_surat: number,
     id_ppns: number,
   ): Promise<PpnsUpload[]> {
     return this.prismaService.ppnsUpload.findMany({
-      where: { file_type, id_surat, id_ppns },
+      where: {
+        file_type,
+        id_surat: Number(id_surat),
+        id_data_ppns: Number(id_ppns),
+      },
     });
   }
 }

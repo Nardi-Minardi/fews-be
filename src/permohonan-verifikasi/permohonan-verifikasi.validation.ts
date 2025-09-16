@@ -36,11 +36,7 @@ export class PermohonanVerifikasiValidation {
           { message: 'Tanggal Ijazah must be a valid date string' },
         )
         .transform((val) => (val ? dayjs(val).toDate() : undefined)),
-      tahun_lulus: z
-        .number({ invalid_type_error: 'Tahun Lulus must be a number' })
-        .int('Tahun Lulus must be an integer')
-        .min(1900, 'Tahun Lulus must be at least 1900')
-        .max(new Date().getFullYear(), 'Tahun Lulus cannot be in the future'),
+      tahun_lulus:  z.string().min(1, 'Tahun Lulus is required'),
     }),
     teknis_operasional_penegak_hukum: z.boolean(),
     jabatan: z.string().min(1, 'Jabatan is required'),
@@ -59,9 +55,9 @@ export class PermohonanVerifikasiValidation {
         .transform((val) => (val ? dayjs(val).toDate() : undefined)),
     }),
     dp3: z.object({
-      tahun_1: z.number().int().min(0),
+      tahun_1: z.string().min(1, 'Tahun 1 is required'),
       nilai_1: z.number().min(0),
-      tahun_2: z.number().int().min(0),
+      tahun_2: z.string().min(1, 'Tahun 2 is required'),
       nilai_2: z.number().min(0),
     }),
   });

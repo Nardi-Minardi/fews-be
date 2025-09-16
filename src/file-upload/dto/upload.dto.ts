@@ -12,4 +12,5 @@ export class PpnsUploadDto {
   mime_type: string;
   file_size: number;
   status: status_upload_ii;
+  master_file_id?: number | null;
 }

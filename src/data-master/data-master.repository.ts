@@ -11,6 +11,7 @@ import {
   ListInstansiDto,
   ListKementerianDto,
   ListLayananDto,
+  ListPangkatGolonganDto,
 } from './dto/data-master.dto';
 import {
   dataPpnsAllowedFields,
@@ -484,7 +485,7 @@ export class DataMasterRepository {
       }
     }
 
-    const results = await this.prismaService.ppnsDataPpns.findMany({
+    const results = await this.prismaService.ppnsDataPns.findMany({
       where,
       skip: (page - 1) * limit,
       take: limit,
@@ -498,15 +499,13 @@ export class DataMasterRepository {
       nip: item.nip || null,
       nama_gelar: item.nama_gelar || null,
       jabatan: item.jabatan || null,
-      pangkat_atau_golongan: item.pangkat_atau_golongan || null,
+      pangkat_atau_golongan: item.pangkat_golongan || null,
       jenis_kelamin: item.jenis_kelamin || null,
       agama: item.agama || null,
       nama_sekolah: item.nama_sekolah || null,
       gelar_terakhir: item.gelar_terakhir || null,
       no_ijazah: item.no_ijazah || null,
       tgl_ijazah: item.tgl_ijazah ? item.tgl_ijazah.toISOString() : null,
-      data_baru: item.data_baru || null,
-      aktif: item.aktif || null,
     }));
   }
 
@@ -527,6 +526,100 @@ export class DataMasterRepository {
       ];
     }
 
-    return this.prismaService.ppnsDataPpns.count({ where });
+    return this.prismaService.ppnsDataPns.count({ where });
+  }
+
+  async countSearchPangkatGolongan(search: string | undefined): Promise<number> {
+    // base where
+    const where: any = {};
+
+    // filter search hanya kalau ada
+    if (search) {
+      where.OR = [{ nama: { contains: search, mode: 'insensitive' } }];
+    }
+
+    return this.prismaService.ppnsPangkatGolongan.count({ where });
+  }
+
+  async findAllWithPaginationPangkatGolongan(
+    search: string | undefined,
+    page: number,
+    limit: number,
+    orderBy: string | undefined = 'created_at',
+    orderDirection: 'asc' | 'desc' = 'desc',
+    filters?: Array<{ field: string; value: string }>,
+  ): Promise<ListPangkatGolonganDto[]> {
+    if (!instansiAllowedFields.includes(orderBy)) {
+      throw new BadRequestException(
+        `Field orderBy '${orderBy}' tidak valid. Gunakan salah satu: ${instansiAllowedFields.join(', ')}`,
+      );
+    }
+
+    // base where
+    const where: any = {};
+    // global search
+    if (search) {
+      const orConditions: any[] = [
+        { nama: { contains: search, mode: 'insensitive' } },
+      ];
+      if (!isNaN(Number(search))) {
+        // kalau kolom Int
+        orConditions.push({ id: Number(search) });
+        orConditions.push({ id_kementerian: Number(search) });
+      }
+      where.OR = orConditions;
+    }
+
+    // --- filters ---
+    if (filters && Object.keys(filters).length > 0) {
+      const numberFields = ['id'];
+      const stringFields = ['nama'];
+      const enumFields = [];
+
+      const filterConditions: any[] = [];
+
+      for (const [field, value] of Object.entries(filters)) {
+        // number
+        if (numberFields.includes(field) && !isNaN(Number(value))) {
+          filterConditions.push({ [field]: Number(value) });
+          continue;
+        }
+
+        // string
+        if (stringFields.includes(field) && typeof value === 'string') {
+          filterConditions.push({
+            [field]: { contains: value, mode: 'insensitive' },
+          });
+          continue;
+        }
+
+        // enum: konversi label ke enum internal
+      }
+
+      if (filterConditions.length > 0) {
+        where.AND = filterConditions; // AND supaya semua filter cocok
+      }
+    }
+
+    const results = await this.prismaService.ppnsPangkatGolongan.findMany({
+      where,
+      // skip: (page - 1) * limit,
+      // take: limit,
+      orderBy: { [orderBy]: orderDirection },
+    });
+
+    return results.map((item) => ({
+      id: item.id,
+      kode_golongan: item.kode_golongan || null,
+      nama_pangkat: item.nama_pangkat || null,
+      created_at: item.created_at ? item.created_at.toISOString() : null,
+      updated_at: item.updated_at ? item.updated_at.toISOString() : null,
+    }));
+  }
+
+  async findPangkatGolonganById(id: number): Promise<any> {
+    return this.prismaService.ppnsPangkatGolongan.findFirst({
+      where: { id },
+    });
   }
 }

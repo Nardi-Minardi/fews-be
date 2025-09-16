@@ -110,7 +110,7 @@ export class SuratController {
       nip: calon.nip || null,
       nama_gelar: calon.nama_gelar || null,
       jabatan: calon.jabatan || null,
-      pangkat_atau_golongan: calon.pangkat_atau_golongan || null,
+      pangkat_atau_golongan: calon.pangkat_golongan || null,
       jenis_kelamin: calon.jenis_kelamin || null,
       agama: calon.agama || null,
       nama_sekolah: calon.nama_sekolah || null,
@@ -122,9 +122,6 @@ export class SuratController {
         id: wilayah.id || null,
         id_ppns: wilayah.id_ppns || null,
         id_surat: wilayah.id_surat || null,
-        id_provinsi: wilayah.id_provinsi || null,
-        id_kabkota: wilayah.id_kabkota || null,
-        id_kecamatan: wilayah.id_kecamatan || null,
         uu_dikawal: [
           wilayah.uu_dikawal_1,
           wilayah.uu_dikawal_2,

@@ -33,7 +33,7 @@ export class FileUploadService {
     idTransaksi: number,
     idPpns: number | null,
     namaLayanan: string,
-    idLayanan: number | null,
+    idMasterFile: number | null,
     fileType: string,
     status: status_upload_ii,
   ): Promise<PpnsUploadDto> {
@@ -72,6 +72,7 @@ export class FileUploadService {
       s3_key: objectKey,
       mime_type: file.mimetype,
       file_size: file.size,
+      master_file_id: idMasterFile,
       status,
     };
   }
