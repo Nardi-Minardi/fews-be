@@ -10,6 +10,7 @@ import { CreateResponsePelantikanPpnsDto } from './dto/create.pelantikan.dto';
 
 export type PpnsPelantikanUpdateInputWithExtra =
   Prisma.PpnsPengangkatanUpdateInput & {
+    id_data_ppns?: number;
     no_surat?: string;
     tgl_surat?: Date;
     no_sk_induk?: string;
@@ -24,21 +25,24 @@ export class PelantikanRepository {
     private readonly suratRepository: SuratRepository,
   ) {}
 
-  async updatePpnsPelantikan(
-    id: number,
-    data: PpnsPelantikanUpdateInputWithExtra,
-  ): Promise<CreateResponsePelantikanPpnsDto> {
-    // Cari id_surat lebih awal
-    let idSurat: number | null = null;
-    if (typeof data.id_data_ppns === 'number') {
-      const pnsData = await this.suratRepository.findPpnsDataPnsById(
-        Number(data.id_data_ppns),
-      );
-      if (!pnsData) throw new NotFoundException('Data PNS not found');
-      idSurat = pnsData.id_surat ?? null;
-    }
+  async savePpnsPelantikan(
+  id: number | null,
+  data: PpnsPelantikanUpdateInputWithExtra,
+): Promise<CreateResponsePelantikanPpnsDto> {
+  // Cari id_surat lebih awal
+  let idSurat: number | null = null;
+  if (typeof data.id_data_ppns === 'number') {
+    const pnsData = await this.suratRepository.findPpnsDataPnsById(
+      Number(data.id_data_ppns),
+    );
+    if (!pnsData) throw new NotFoundException('Data PNS not found');
+    idSurat = pnsData.id_surat ?? null;
+  }
 
-    const result = await this.prismaService.ppnsPelantikan.update({
+  // Jika id tidak ada → create, jika ada → update
+  let result;
+  if (id) {
+    result = await this.prismaService.ppnsPelantikan.update({
       where: { id },
       data: {
         id_data_ppns: data.id_data_ppns,
@@ -47,25 +51,36 @@ export class PelantikanRepository {
         tgl_sk_induk: data.tgl_sk_induk,
       },
     });
-
-    return {
-      id: result.id ?? null,
-      id_surat: idSurat,
-      id_data_ppns: result.id_data_ppns ?? null,
-      surat_permohonan: {
-        no_surat: data.no_surat ?? null,
-        tgl_surat: data.tgl_surat
-          ? data.tgl_surat.toISOString().split('T')[0]
-          : null,
+  } else {
+    result = await this.prismaService.ppnsPelantikan.create({
+      data: {
+        id_data_ppns: data.id_data_ppns,
+        id_surat: idSurat ?? undefined,
+        no_sk_induk: data.no_sk_induk,
+        tgl_sk_induk: data.tgl_sk_induk,
       },
-      surat_ket_pengangkatan: {
-        no_sk_induk: result.no_sk_induk ?? null,
-        tgl_sk_induk: result.tgl_sk_induk
-          ? result.tgl_sk_induk.toISOString().split('T')[0]
-          : null,
-      },
-    };
+    });
   }
+
+  return {
+    id: result.id ?? null,
+    id_surat: idSurat,
+    id_data_ppns: result.id_data_ppns ?? null,
+    surat_permohonan: {
+      no_surat: data.no_surat ?? null,
+      tgl_surat: data.tgl_surat
+        ? data.tgl_surat.toISOString().split('T')[0]
+        : null,
+    },
+    surat_ket_pengangkatan: {
+      no_sk_induk: result.no_sk_induk ?? null,
+      tgl_sk_induk: result.tgl_sk_induk
+        ? result.tgl_sk_induk.toISOString().split('T')[0]
+        : null,
+    },
+  };
+}
+
 
   async findPpnsPelantikanByIdDataPpns(id_data_ppns: number) {
     return this.prismaService.ppnsPelantikan.findFirst({

@@ -27,6 +27,7 @@ export type PpnsPengangkatanCreateInputWithExtra =
 
 export type PpnsPengangkatanUpdateInputWithExtra =
   Prisma.PpnsPengangkatanUpdateInput & {
+    id_data_ppns?: number;
     gelar_terakhir?: string;
     no_surat_polisi?: string;
     tgl_surat_polisi?: Date;
@@ -141,9 +142,11 @@ export class PengangkatanRepository {
       idSurat = pnsData.id_surat ?? null;
     }
 
+    // Exclude id_data_ppns from data before updating
+    const { id_data_ppns, ...updateData } = data;
     const result = await this.prismaService.ppnsPengangkatan.update({
       where: { id },
-      data,
+      data: updateData,
     });
 
     const uploads = await this.prismaService.ppnsUpload.findMany({

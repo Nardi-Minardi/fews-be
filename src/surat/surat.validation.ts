@@ -88,6 +88,24 @@ export class SuratValidation {
 
   static readonly CREATE_SEND_VERIFIKATOR: ZodType = z.object({
     id_surat: z.number(),
+    // layanan: z.enum(
+    //   [
+    //     'verifikasi',
+    //     'pengangkatan',
+    //     'pelantikan',
+    //     'mutasi',
+    //     'pengangkatan kembali',
+    //     'perpanjang ktp',
+    //     'penerbitan kembali ktp',
+    //     'undur diri',
+    //     'pensiun',
+    //     'pemberhentian NTO',
+    //   ],
+    //   {
+    //     message:
+    //       'Layanan must be one of (verifikasi, pengangkatan, pelantikan, mutasi, pengangkatan kembali, perpanjang ktp, penerbitan kembali ktp, undur diri, pensiun, pemberhentian NTO)',
+    //   },
+    // ),
   });
 
   static readonly CREATE_CALON_PPNS: ZodType = z.object({
@@ -104,7 +122,11 @@ export class SuratValidation {
         message: 'Jenis Kelamin must be Pria atau Wanita',
       }),
       nomor_hp: z.string().optional(),
-      email: z.string().email('Email must be a valid email address').optional().nullable(),
+      email: z
+        .string()
+        .email('Email must be a valid email address')
+        .optional()
+        .nullable(),
       agama: z.number(),
       // agama: z.enum(
       //   [
@@ -138,8 +160,12 @@ export class SuratValidation {
       )
       .min(1, 'Minimal harus ada 1 wilayah kerja'),
     lokasi_penempatan: z.object({
-      provinsi_penempatan: z.string().min(1, 'Provinsi Penempatan Kerja is required'),
-      kabupaten_penempatan: z.string().min(1, 'kabupaten Penempatan is required'),
+      provinsi_penempatan: z
+        .string()
+        .min(1, 'Provinsi Penempatan Kerja is required'),
+      kabupaten_penempatan: z
+        .string()
+        .min(1, 'kabupaten Penempatan is required'),
       unit_kerja: z.string().min(1, 'Unit Kerja is required'),
     }),
   });

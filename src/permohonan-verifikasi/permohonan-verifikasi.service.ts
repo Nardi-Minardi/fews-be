@@ -172,12 +172,7 @@ export class PermohonanVerifikasiService {
     },
     authorization?: string,
   ): Promise<CreateResponsePermohonanVerifikasiUploadDokumenPpnsDto> {
-    this.logger.debug(
-      'Request Creating permohonan verifikasi create upload dokumen',
-      {
-        request,
-      },
-    );
+    
     const createRequest = this.validationService.validate(
       PermohonanVerifikasiValidation.CREATE_VERIFIKASI_UPLOAD,
       request,

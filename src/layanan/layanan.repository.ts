@@ -11,4 +11,10 @@ export class LayananRepository {
       where: { nama: namaLayanan },
     });
   }
+
+  async findLayananById(id: number): Promise<PpnsLayanan | null> {
+    return this.prismaService.ppnsLayanan.findFirst({
+      where: { id: id },
+    });
+  }
 }

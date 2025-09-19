@@ -50,13 +50,15 @@ export class PengangkatanService {
     },
     authorization?: string,
   ): Promise<any> {
-    this.logger.debug('Request create new pengangkatan PPNS', { request });
+    // clone request tanpa field file
+    const safeRequest = { ...request };
+    delete safeRequest.dok_tanda_terima_polisi;
+    delete safeRequest.dok_tanda_terima_kejaksaan_agung;
 
-    // Handle if body is empty
-    if (!request || Object.keys(request).length === 0) {
-      this.logger.error('Request body is empty');
-      throw new BadRequestException('Request body cannot be empty');
-    }
+    // log hanya field non-file
+    this.logger.debug('Request create new pengangkatan PPNS', {
+      request: safeRequest,
+    });
 
     const createRequest = this.validationService.validate(
       PengangkatanValidation.CREATE_PENGANGKATAN_PPNS,
@@ -144,7 +146,7 @@ export class PengangkatanService {
         existingPpnsPengangkatan.id,
         createData as unknown as PpnsPengangkatanUpdateInputWithExtra,
       );
-    } 
+    }
     // else {
     //   // create data calon ppns
     //   result = await this.pengangkatanRepository.savePpnsPengangkatan(
@@ -284,9 +286,7 @@ export class PengangkatanService {
     },
     authorization?: string,
   ): Promise<CreateResponsePermohonanVerifikasiUploadDokumenPpnsDto> {
-    this.logger.debug('Request Creating Pengangkatan create upload dokumen', {
-      request,
-    });
+   
     const createRequest = this.validationService.validate(
       PengangkatanValidation.CREATE_PENGANGKATAN_UPLOAD,
       request,

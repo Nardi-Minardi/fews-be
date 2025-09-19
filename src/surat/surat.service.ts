@@ -56,9 +56,15 @@ export class SuratService {
     },
     authorization?: string,
   ): Promise<CreateResponseSuratDto> {
+    // clone request tanpa field dok_surat_pernyataan
+    const safeRequest = { ...request };
+    delete safeRequest.dok_surat_pernyataan;
+
+    // log hanya safeRequest (tanpa file)
     this.logger.debug('Request Creating permohonan verifikasi create surat', {
-      request,
+      request: safeRequest,
     });
+
     const createRequest = this.validationService.validate(
       SuratValidation.CREATE_SURAT,
       request,
@@ -312,9 +318,70 @@ export class SuratService {
       existingSurat.ppns_data_pns.length === 0
     ) {
       throw new HttpException(
-        `Data Ppns surat dengan ID ${createRequest.id_surat} belum memiliki data calon ppns, silakan lengkapi data calon ppns terlebih dahulu`,
+        `Data Ppns surat dengan ID ${createRequest.id_surat} belum memiliki calon ppns, silakan tambahkan calon ppns terlebih dahulu`,
         400,
       );
+    }
+
+    //find layanan by id
+    if (
+      existingSurat.id_layanan === null ||
+      existingSurat.id_layanan === undefined
+    ) {
+      throw new BadRequestException('ID Layanan is missing');
+    }
+    const layanan = await this.layananRepository.findLayananById(
+      existingSurat.id_layanan,
+    );
+    if (!layanan) {
+      throw new NotFoundException(
+        `Layanan with ID ${existingSurat.id_layanan} not found`,
+      );
+    }
+
+    // Buat mapping antara layanan dan nama relasi yang harus dicek
+    const relasiMap = {
+      verifikasi: {
+        key: 'ppns_verifikasi_ppns',
+        message: 'data verifikasi ppns',
+      },
+      pelantikan: {
+        key: 'ppns_pelantikan',
+        message: 'data pelantikan',
+      },
+      pengangkatan: {
+        key: 'ppns_pengangkatan',
+        message: 'data pengangkatan',
+      },
+    } as const;
+
+    const relasi = relasiMap[layanan.nama as keyof typeof relasiMap];
+
+    if (!relasi) {
+      throw new BadRequestException(
+        `Layanan '${createRequest.layanan}' tidak dikenali`,
+      );
+    }
+
+    // Loop semua ppns_data_pns dan cek relasi sesuai layanan
+    for (const ppnsDataPns of existingSurat.ppns_data_pns) {
+      const dataRelasi = ppnsDataPns[relasi.key];
+
+      if (!dataRelasi || dataRelasi.length === 0) {
+        throw new HttpException(
+          `Data calon ppns dengan ID ${ppnsDataPns.id} dengan layanan ${layanan.nama} belum memiliki ${relasi.message}, silakan lengkapi ${relasi.message} terlebih dahulu`,
+          400,
+        );
+      }
+
+      //jika belum ada upload
+      const uploads = (ppnsDataPns as any).ppns_upload;
+      if (!uploads || uploads.length === 0) {
+        throw new HttpException(
+          `Data calon ppns dengan ID ${ppnsDataPns.id} dengan layanan ${layanan.nama} belum memiliki upload dokumen, silakan lengkapi upload dokumen terlebih dahulu`,
+          400,
+        );
+      }
     }
 
     //update statusnya

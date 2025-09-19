@@ -303,7 +303,14 @@ export class SuratRepository {
     return this.prismaService.ppnsSurat.findFirst({
       where: { id },
       include: {
-        ppns_data_pns: true,
+        ppns_data_pns: {
+          include: {
+            ppns_verifikasi_ppns: true,
+            ppns_pelantikan: true,
+            ppns_pengangkatan: true,
+            ppns_upload: true,
+          },
+        },
         ppns_upload: true,
       },
     });
@@ -391,19 +398,35 @@ export class SuratRepository {
       });
 
       // ✅ 4. Tambahan create otomatis (hanya saat create pertama)
-      const surat = await this.prismaService.ppnsSurat.findUnique({
-        where: { id: result.id_surat ?? undefined },
+    }
+
+    const surat = await this.prismaService.ppnsSurat.findUnique({
+      where: { id: result.id_surat ?? undefined },
+    });
+
+    if (!surat) throw new NotFoundException('Surat not found');
+
+    const layanan = await this.prismaService.ppnsLayanan.findUnique({
+      where: { id: surat.id_layanan ?? undefined },
+    });
+
+    if (!layanan) throw new NotFoundException('Layanan not found');
+
+    if (layanan.nama === 'verifikasi') {
+      const existing = await this.prismaService.ppnsVerifikasiPpns.findUnique({
+        where: { id_data_ppns: result.id },
       });
 
-      if (!surat) throw new NotFoundException('Surat not found');
-
-      const layanan = await this.prismaService.ppnsLayanan.findUnique({
-        where: { id: surat.id_layanan ?? undefined },
-      });
-
-      if (!layanan) throw new NotFoundException('Layanan not found');
-
-      if (layanan.nama === 'verifikasi') {
+      if (existing) {
+        await this.prismaService.ppnsVerifikasiPpns.update({
+          where: { id: existing.id }, // pakai id yang pasti unique
+          data: {
+            provinsi_penempatan,
+            kabupaten_penempatan,
+            unit_kerja,
+          },
+        });
+      } else {
         await this.prismaService.ppnsVerifikasiPpns.create({
           data: {
             id_data_ppns: result.id,
@@ -413,7 +436,22 @@ export class SuratRepository {
             created_by,
           },
         });
-      } else if (layanan.nama === 'pengangkatan') {
+      }
+    } else if (layanan.nama === 'pengangkatan') {
+      const existing = await this.prismaService.ppnsPengangkatan.findUnique({
+        where: { id_data_ppns: result.id },
+      });
+
+      if (existing) {
+        await this.prismaService.ppnsPengangkatan.update({
+          where: { id: existing.id },
+          data: {
+            provinsi_penempatan,
+            kabupaten_penempatan,
+            unit_kerja,
+          },
+        });
+      } else {
         await this.prismaService.ppnsPengangkatan.create({
           data: {
             id_data_ppns: result.id,
@@ -423,7 +461,22 @@ export class SuratRepository {
             created_by,
           },
         });
-      } else if (layanan.nama === 'pelantikan') {
+      }
+    } else if (layanan.nama === 'pelantikan') {
+      const existing = await this.prismaService.ppnsPelantikan.findUnique({
+        where: { id_data_ppns: result.id },
+      });
+
+      if (existing) {
+        await this.prismaService.ppnsPelantikan.update({
+          where: { id: existing.id },
+          data: {
+            provinsi_penempatan,
+            kabupaten_penempatan,
+            unit_kerja,
+          },
+        });
+      } else {
         await this.prismaService.ppnsPelantikan.create({
           data: {
             id_data_ppns: result.id,

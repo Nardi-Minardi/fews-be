@@ -90,15 +90,10 @@ export class PelantikanService {
         Number(createRequest.id_data_ppns),
       );
 
-    let result;
-
-    if (existingPpnsPelantikan) {
-      //update
-      result = await this.pelantikanRepository.updatePpnsPelantikan(
-        existingPpnsPelantikan.id,
-        createData as unknown as PpnsPelantikanUpdateInputWithExtra,
-      );
-    }
+    const result = await this.pelantikanRepository.savePpnsPelantikan(
+      existingPpnsPelantikan?.id ?? null,
+      createData as PpnsPelantikanUpdateInputWithExtra,
+    );
 
     const layanan =
       await this.layananRepository.findLayananByNama('pelantikan');
