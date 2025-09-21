@@ -5,16 +5,15 @@ import { S3Service } from 'src/common/s3.service';
 import { DataMasterRepository } from 'src/data-master/data-master.repository';
 import { LayananRepository } from 'src/layanan/layanan.repository';
 import { SuratRepository } from 'src/surat/surat.repository';
-import { PelantikanController } from './pelantikan.controller';
-import { PelantikanService } from './pelantikan.service';
-import { PelantikanRepository } from './pelantikan.repository';
-;
+import { PengangkatanKembaliController } from './pengangkatan-kembali.controller';
+import { PengangkatanKembaliService } from './pengangkatan-kembali.service';
+import { PengangkatanKembaliRepository } from './pengangkatan-kembali.repository';
 
 @Module({
-  controllers: [PelantikanController],
+  controllers: [PengangkatanKembaliController],
   providers: [
-    PelantikanService,
-    PelantikanRepository,
+    PengangkatanKembaliService,
+    PengangkatanKembaliRepository,
     FileUploadService,
     FileUploadRepository,
     DataMasterRepository,
@@ -23,4 +22,4 @@ import { PelantikanRepository } from './pelantikan.repository';
     SuratRepository,
   ],
 })
-export class PelantikanModule {}
+export class PengangkatanKembaliModule {}

@@ -487,6 +487,57 @@ export class SuratRepository {
           },
         });
       }
+    } else if (layanan.nama === 'mutasi') {
+      // untuk mutasi, kita simpan di tabel ppns_verifikasi_ppns juga
+      const existing = await this.prismaService.ppnsMutasi.findUnique({
+        where: { id_data_ppns: result.id },
+      });
+      if (existing) {
+        await this.prismaService.ppnsMutasi.update({
+          where: { id: existing.id },
+          data: {
+            provinsi_penempatan,
+            kabupaten_penempatan,
+            unit_kerja,
+          },
+        });
+      } else {
+        await this.prismaService.ppnsMutasi.create({
+          data: {
+            id_data_ppns: result.id,
+            id_surat: result.id_surat,
+            provinsi_penempatan,
+            kabupaten_penempatan,
+            unit_kerja,
+            created_by,
+          },
+        });
+      }
+    } else if (layanan.nama === 'pengangkatan kembali') {
+      const existing = await this.prismaService.ppnsPengangkatanKembali.findUnique({
+        where: { id_data_ppns: result.id },
+      });
+
+      if (existing) {
+        await this.prismaService.ppnsPengangkatanKembali.update({
+          where: { id: existing.id },
+          data: {
+            provinsi_penempatan,
+            kabupaten_penempatan,
+            unit_kerja,
+          },
+        });
+      } else {
+        await this.prismaService.ppnsPengangkatanKembali.create({
+          data: {
+            id_data_ppns: result.id,
+            provinsi_penempatan,
+            kabupaten_penempatan,
+            unit_kerja,
+            created_by,
+          },
+        });
+      }
     }
 
     // ✅ 5. Mapping response tetap sama

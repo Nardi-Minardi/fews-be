@@ -53,7 +53,7 @@ export class PelantikanValidation {
     })
   });
 
-  static readonly CREATE_PENGANGKATAN_UPLOAD: ZodType = z.object({
+  static readonly CREATE_PELANTIKAN_UPLOAD: ZodType = z.object({
     id_surat: z.string().min(1, 'id_surat is required'),
     id_ppns: z.string().min(1, 'id_ppns is required'),
     dok_pelantikan_surat_permohonan: z

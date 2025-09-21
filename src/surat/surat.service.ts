@@ -107,7 +107,7 @@ export class SuratService {
 
       case 'pengangkatan kembali':
         dataLayanan = await this.layananRepository.findLayananByNama(
-          'pengangkatan_kembali',
+          'pengangkatan kembali',
         );
         namePrefixUpload = 'pengangkatan-kembali';
         break;
@@ -396,7 +396,6 @@ export class SuratService {
     };
   }
 
-  //butuh validasi pangkat golongan nanti
   async storeCalonPpns(
     request: any,
     authorization?: string,
@@ -490,6 +489,8 @@ export class SuratService {
           .map((g) => g.trim())
           .join('_')
       : '';
+
+    // ["abc", "def"].join(" ") // "abc,def"
 
     // gabungkan dengan `;` hanya jika keduanya ada
     const namaGelar =

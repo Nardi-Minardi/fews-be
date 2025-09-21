@@ -72,34 +72,6 @@ model PpnsLayanan {
   @@map("m_ppns_layanan")
 }
 
-model PpnsMutasi {
-  id                             Int          @id @default(autoincrement())
-  id_surat                       Int?         @db.Integer
-  id_data_ppns                   Int?         @db.Integer
-  jumlah_mutasi                  Decimal?     @db.Decimal(18, 2)
-  id_data_ppns_baru              Int?         @db.Integer
-  no_keputusan_pangkat           String?      @db.VarChar(255)
-  tgl_keputusan_pangkat          DateTime?    @db.Date
-  no_keputusan_kenaikan_pangkat  String?      @db.VarChar(255)
-  tgl_keputusan_kenaikan_pangkat DateTime?    @db.Date
-  no_sk_mutasi_wilayah_kerja     String?      @db.VarChar(255)
-  tgl_sk_mutasi_wilayah_kerja    DateTime?    @db.Date
-  verifikator_1_by               Int?         @db.Integer
-  verifikator_1_at               DateTime?    @db.Timestamp(6)
-  status_1                       status_enum?
-  verifikator_2_by               Int?         @db.Integer
-  verifikator_2_at               DateTime?    @db.Timestamp(6)
-  status_2                       status_enum?
-  verifikator_3_by               Int?         @db.Integer
-  verifikator_3_at               DateTime?    @db.Timestamp(6)
-  status_3                       status_enum?
-  verifikator_4_by               Int?         @db.Integer
-  verifikator_4_at               DateTime?    @db.Timestamp(6)
-  status_4                       status_enum?
-
-  @@map("tr_ppns_mutasi")
-}
-
 model PpnsPemberhentianNto {
   id                      Int          @id @default(autoincrement())
   id_surat                Int?         @db.Integer
@@ -209,36 +181,6 @@ model PpnsPenerbitanKembaliKtp {
   @@map("tr_ppns_penerbitan_kembali_ktp")
 }
 
-model PpnsPengangkatanKembali {
-  id                    Int          @id @default(autoincrement())
-  id_surat              Int?         @db.Integer
-  id_data_ppns          Int?         @db.Integer
-  no_sk_pemberhentian   String?      @db.VarChar(255)
-  tgl_sk_pemberhentian  DateTime?    @db.Date
-  no_sk_terakhir        String?      @db.VarChar(255)
-  tgl_sk_terakhir       DateTime?    @db.Date
-  tahun_dp3             Int?         @db.Integer
-  nilai_dp3             Decimal?     @db.Decimal(18, 2)
-  tgl_skp               DateTime?    @db.Date
-  nilai_skp             Decimal?     @db.Decimal(18, 2)
-  jabatan_baru          String?      @db.VarChar(255)
-  pangkat_atau_golongan String?      @db.VarChar(255)
-  verifikator_1_by      Int?         @db.Integer
-  verifikator_1_at      DateTime?    @db.Timestamp(6)
-  status_1              status_enum?
-  verifikator_2_by      Int?         @db.Integer
-  verifikator_2_at      DateTime?    @db.Timestamp(6)
-  status_2              status_enum?
-  verifikator_3_by      Int?         @db.Integer
-  verifikator_3_at      DateTime?    @db.Timestamp(6)
-  status_3              status_enum?
-  verifikator_4_by      Int?         @db.Integer
-  verifikator_4_at      DateTime?    @db.Timestamp(6)
-  status_4              status_enum?
-
-  @@map("tr_ppns_pengangkatan_kembali")
-}
-
 model PpnsPerpanjangKtp {
   id                Int          @id @default(autoincrement())
   id_surat          Int?         @db.Integer
@@ -338,12 +280,14 @@ model PpnsDataPns {
   id_lama          Int?                @db.Integer
 
   // Relasi
-  ppns_surat           PpnsSurat?          @relation("PpnsDataToSurat", fields: [id_surat], references: [id])
-  ppns_wilayah_kerja   WilayahKerja[]      @relation("PpnsDataPnsToWilayahKerja")
-  ppns_verifikasi_ppns PpnsVerifikasiPpns? @relation("PpnsDataPnsToVerifikasiPpns")
-  ppns_pengangkatan    PpnsPengangkatan?   @relation("PpnsDataPnsToPengangkatan")
-  ppns_pelantikan      PpnsPelantikan?     @relation("PpnsDataPnsToPelantikan")
-  ppns_upload          PpnsUpload[]        @relation("PpnsUploadToDataPpns")
+  ppns_surat                PpnsSurat?               @relation("PpnsDataToSurat", fields: [id_surat], references: [id])
+  ppns_wilayah_kerja        WilayahKerja[]           @relation("PpnsDataPnsToWilayahKerja")
+  ppns_upload               PpnsUpload[]             @relation("PpnsUploadToDataPpns")
+  ppns_verifikasi_ppns      PpnsVerifikasiPpns?      @relation("PpnsDataPnsToVerifikasiPpns")
+  ppns_pengangkatan         PpnsPengangkatan?        @relation("PpnsDataPnsToPengangkatan")
+  ppns_pelantikan           PpnsPelantikan?          @relation("PpnsDataPnsToPelantikan")
+  ppns_mutasi               PpnsMutasi?              @relation("PpnsDataPnsToMutasi")
+  ppns_pengangkatan_kembali PpnsPengangkatanKembali? @relation("PpnsDataPnsToPengangkatanKembali")
 
   @@map("tr_data_ppns")
 }
@@ -442,6 +386,55 @@ model PpnsPelantikan {
   ppns_data_pns PpnsDataPns? @relation("PpnsDataPnsToPelantikan", fields: [id_data_ppns], references: [id])
 
   @@map("tr_ppns_pelantikan")
+}
+
+//mutasi
+model PpnsMutasi {
+  id                             Int       @id @default(autoincrement())
+  id_surat                       Int?      @db.Integer
+  id_data_ppns                   Int?      @unique @db.Integer
+  jumlah_mutasi                  Decimal?  @db.Decimal(18, 2)
+  no_keputusan_pangkat           String?   @db.VarChar(255)
+  tgl_keputusan_pangkat          DateTime? @db.Date
+  no_keputusan_kenaikan_pangkat  String?   @db.VarChar(255)
+  tgl_keputusan_kenaikan_pangkat DateTime? @db.Date
+  no_sk_mutasi_wilayah_kerja     String?   @db.VarChar(255)
+  tgl_sk_mutasi_wilayah_kerja    DateTime? @db.Date
+  provinsi_penempatan            Int?      @db.Integer
+  kabupaten_penempatan           Int?      @db.Integer
+  unit_kerja                     String?   @db.VarChar(255)
+  created_at                     DateTime? @default(now()) @db.Timestamp(6)
+  created_by                     Int?      @db.Integer
+
+  ppns_data_pns PpnsDataPns? @relation("PpnsDataPnsToMutasi", fields: [id_data_ppns], references: [id])
+
+  @@map("tr_ppns_mutasi")
+}
+
+//pengangkatan kembali
+model PpnsPengangkatanKembali {
+  id                   Int       @id @default(autoincrement())
+  id_surat             Int?      @db.Integer
+  id_data_ppns         Int?      @unique @db.Integer
+  no_sk_pemberhentian  String?   @db.VarChar(255)
+  tgl_sk_pemberhentian DateTime? @db.Date
+  no_sk_terakhir       String?   @db.VarChar(255)
+  tgl_sk_terakhir      DateTime? @db.Date
+  tahun_dp3            String?   @db.VarChar(4)
+  nilai_dp3            Int?      @db.Integer
+  tgl_skp              DateTime? @db.Date
+  nilai_skp            Int?      @db.Integer
+  jabatan_baru         String?   @db.VarChar(255)
+  pangkat_golongan     String?   @db.VarChar(255)
+  provinsi_penempatan  Int?      @db.Integer
+  kabupaten_penempatan Int?      @db.Integer
+  unit_kerja           String?   @db.VarChar(255)
+  created_at           DateTime? @default(now()) @db.Timestamp(6)
+  created_by           Int?      @db.Integer
+
+  ppns_data_pns PpnsDataPns? @relation("PpnsDataPnsToPengangkatanKembali", fields: [id_data_ppns], references: [id])
+
+  @@map("tr_ppns_pengangkatan_kembali")
 }
 
 model PpnsVerifikasiData {

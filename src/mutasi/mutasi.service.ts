@@ -8,7 +8,7 @@ import {
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { ValidationService } from 'src/common/validation.service';
 import { Logger } from 'winston';
-import { CreateResponsePermohonanVerifikasiUploadDokumenPpnsDto } from './dto/create.pelantikan.dto';
+import { CreateResponsePermohonanVerifikasiUploadDokumenPpnsDto } from './dto/create.mutasi.dto';
 import {
   dateOnlyToLocal,
   generateUniqueString,
@@ -21,27 +21,27 @@ import { status_upload_ii, Prisma } from '.prisma/main-client';
 import { PpnsUploadDto } from 'src/file-upload/dto/upload.dto';
 import { SuratRepository } from 'src/surat/surat.repository';
 import {
-  PelantikanRepository,
-  PpnsPelantikanUpdateInputWithExtra,
-} from './pelantikan.repository';
+  MutasiRepository,
+  PpnsMutasiUpdateInputWithExtra,
+} from './mutasi.repository';
 import { LayananRepository } from 'src/layanan/layanan.repository';
-import { PelantikanValidation } from './pelantikan.validation';
+import { MutasiValidation } from './mutasi.validation';
 
 @Injectable()
-export class PelantikanService {
+export class MutasiService {
   constructor(
     @Inject(WINSTON_MODULE_PROVIDER) private logger: Logger,
     private validationService: ValidationService,
     private fileUploadService: FileUploadService,
     private fileUploadRepository: FileUploadRepository,
-    private pelantikanRepository: PelantikanRepository,
+    private mutasiRepository: MutasiRepository,
     private suratRepository: SuratRepository,
     private layananRepository: LayananRepository,
     private s3Service: S3Service,
   ) {}
 
-  async storePelantikan(request: any, authorization?: string): Promise<any> {
-    this.logger.debug('Request create new pelantikan PPNS', { request });
+  async storeMutasi(request: any, authorization?: string): Promise<any> {
+    this.logger.debug('Request create new Mutasi PPNS', { request });
     // Handle if body is empty
     if (!request || Object.keys(request).length === 0) {
       this.logger.error('Request body is empty');
@@ -49,7 +49,7 @@ export class PelantikanService {
     }
 
     const createRequest = this.validationService.validate(
-      PelantikanValidation.CREATE_PELANTIKAN_PPNS,
+      MutasiValidation.CREATE_MUTASI_PPNS,
       request,
     );
 
@@ -78,25 +78,47 @@ export class PelantikanService {
       tgl_surat: createRequest.surat_permohonan.tgl_surat
         ? dateOnlyToLocal(createRequest.surat_permohonan.tgl_surat)
         : null,
-      no_sk_induk: createRequest.surat_ket_pengangkatan.no_sk_induk,
-      tgl_sk_induk: createRequest.surat_ket_pengangkatan.tgl_sk_induk
-        ? dateOnlyToLocal(createRequest.surat_ket_pengangkatan.tgl_sk_induk)
+      no_keputusan_pangkat:
+        createRequest.surat_keputusan_pangkat.no_keputusan_pangkat,
+      tgl_keputusan_pangkat: createRequest.surat_keputusan_pangkat
+        .tgl_keputusan_pangkat
+        ? dateOnlyToLocal(
+            createRequest.surat_keputusan_pangkat.tgl_keputusan_pangkat,
+          )
+        : null,
+      no_keputusan_kenaikan_pangkat:
+        createRequest.surat_keputusan_kenaikan_pangkat
+          .no_keputusan_kenaikan_pangkat,
+      tgl_keputusan_kenaikan_pangkat: createRequest
+        .surat_keputusan_kenaikan_pangkat.tgl_keputusan_kenaikan_pangkat
+        ? dateOnlyToLocal(
+            createRequest.surat_keputusan_kenaikan_pangkat
+              .tgl_keputusan_kenaikan_pangkat,
+          )
+        : null,
+      no_sk_mutasi_wilayah_kerja:
+        createRequest.surat_sk_mutasi_wilayah_kerja.no_sk_mutasi_wilayah_kerja,
+      tgl_sk_mutasi_wilayah_kerja: createRequest.surat_sk_mutasi_wilayah_kerja
+        .tgl_sk_mutasi_wilayah_kerja
+        ? dateOnlyToLocal(
+            createRequest.surat_sk_mutasi_wilayah_kerja
+              .tgl_sk_mutasi_wilayah_kerja,
+          )
         : null,
     };
 
-    //cek data pelantikan
-    const existingPpnsPelantikan =
-      await this.pelantikanRepository.findPpnsPelantikanByIdDataPpns(
+    //cek data
+    const existingMutasi =
+      await this.mutasiRepository.findPpnsMutasiByIdDataPpns(
         Number(createRequest.id_data_ppns),
       );
 
-    const result = await this.pelantikanRepository.savePpnsPelantikan(
-      existingPpnsPelantikan?.id ?? null,
-      createData as PpnsPelantikanUpdateInputWithExtra,
+    const result = await this.mutasiRepository.savePpnsMutasi(
+      existingMutasi?.id ?? null,
+      createData as PpnsMutasiUpdateInputWithExtra,
     );
 
-    const layanan =
-      await this.layananRepository.findLayananByNama('pelantikan');
+    const layanan = await this.layananRepository.findLayananByNama('mutasi');
 
     // gabungkan uploads ke response
     return result;
@@ -104,17 +126,18 @@ export class PelantikanService {
 
   async storeUploadDokumen(
     request: any & {
-      dok_pelantikan_surat_permohonan?: Express.Multer.File;
-      dok_pelantikan_sk_menteri?: Express.Multer.File;
-      dok_pelantikan_lampiran_menteri?: Express.Multer.File;
+      dok_mutasi_keputusan_pengangkatan?: Express.Multer.File;
+      dok_mutasi_keputusan_kenaikan_pangkat?: Express.Multer.File;
+      dok_mutasi_sk_mutasi?: Express.Multer.File;
+      mutasi_pas_foto?: Express.Multer.File;
     },
     authorization?: string,
   ): Promise<CreateResponsePermohonanVerifikasiUploadDokumenPpnsDto> {
-    this.logger.debug('Request Creating pelantikani create upload dokumen', {
-      request,
-    });
+    // this.logger.debug('Request Creating Mutasi create upload dokumen', {
+    //   request,
+    // });
     const createRequest = this.validationService.validate(
-      PelantikanValidation.CREATE_PELANTIKAN_UPLOAD,
+      MutasiValidation.CREATE_MUTASI_UPLOAD,
       request,
     );
 
@@ -149,14 +172,14 @@ export class PelantikanService {
 
     const dataUploadDB: PpnsUploadDto[] = [];
 
-    if (request.dok_pelantikan_surat_permohonan) {
+    if (request.dok_mutasi_keputusan_pengangkatan) {
       const masterFile =
         await this.fileUploadRepository.getMasterPpnsUploadByIdByName(
-          'pelantikan_surat_permohonan',
+          'mutasi_keputusan_pengangkatan',
         );
 
       const existing = await this.fileUploadRepository.findFilePpnsUpload(
-        'pelantikan_surat_permohonan',
+        'mutasi_keputusan_pengangkatan',
         existingSurat.id,
         existingPpnsDataPns.id,
       );
@@ -168,26 +191,26 @@ export class PelantikanService {
       );
 
       const upload = await this.fileUploadService.handleUpload(
-        request.dok_pelantikan_surat_permohonan,
-        'pelantikan_surat_permohonan',
+        request.dok_mutasi_keputusan_pengangkatan,
+        'mutasi_keputusan_pengangkatan',
         existingSurat.id,
         existingPpnsDataPns.id,
-        'pelantikan',
+        'mutasi',
         masterFile ? masterFile.id : null,
-        'pelantikan_surat_permohonan',
+        'mutasi_keputusan_pengangkatan',
         status_upload_ii.pending,
       );
 
       dataUploadDB.push(upload);
     }
 
-    if (request.dok_pelantikan_sk_menteri) {
+    if (request.dok_mutasi_keputusan_kenaikan_pangkat) {
       const masterFile =
         await this.fileUploadRepository.getMasterPpnsUploadByIdByName(
-          'pelantikan_sk_menteri',
+          'mutasi_keputusan_kenaikan_pangkat',
         );
       const existing = await this.fileUploadRepository.findFilePpnsUpload(
-        'pelantikan_sk_menteri',
+        'mutasi_keputusan_kenaikan_pangkat',
         existingSurat.id,
         existingPpnsDataPns.id,
       );
@@ -197,25 +220,25 @@ export class PelantikanService {
         ),
       );
       const upload = await this.fileUploadService.handleUpload(
-        request.dok_pelantikan_sk_menteri,
-        'pelantikan_sk_menteri',
+        request.dok_mutasi_keputusan_kenaikan_pangkat,
+        'mutasi_keputusan_kenaikan_pangkat',
         existingSurat.id,
         existingPpnsDataPns.id,
-        'pelantikan',
+        'mutasi',
         masterFile ? masterFile.id : null,
-        'pelantikan_sk_menteri',
+        'mutasi_keputusan_kenaikan_pangkat',
         status_upload_ii.pending,
       );
       dataUploadDB.push(upload);
     }
 
-    if (request.dok_pelantikan_lampiran_menteri) {
+    if (request.dok_mutasi_sk_mutasi) {
       const masterFile =
         await this.fileUploadRepository.getMasterPpnsUploadByIdByName(
-          'pelantikan_lampiran_menteri',
+          'mutasi_sk_mutasi',
         );
       const existing = await this.fileUploadRepository.findFilePpnsUpload(
-        'pelantikan_lampiran_menteri',
+        'mutasi_sk_mutasi',
         existingSurat.id,
         existingPpnsDataPns.id,
       );
@@ -225,13 +248,41 @@ export class PelantikanService {
         ),
       );
       const upload = await this.fileUploadService.handleUpload(
-        request.dok_pelantikan_lampiran_menteri,
-        'pelantikan_lampiran_menteri',
+        request.dok_mutasi_sk_mutasi,
+        'mutasi_sk_mutasi',
         existingSurat.id,
         existingPpnsDataPns.id,
-        'pelantikan',
+        'mutasi',
         masterFile ? masterFile.id : null,
-        'pelantikan_lampiran_menteri',
+        'mutasi_sk_mutasi',
+        status_upload_ii.pending,
+      );
+      dataUploadDB.push(upload);
+    }
+
+    if (request.mutasi_pas_foto) {
+      const masterFile =
+        await this.fileUploadRepository.getMasterPpnsUploadByIdByName(
+          'mutasi_pas_foto',
+        );
+      const existing = await this.fileUploadRepository.findFilePpnsUpload(
+        'mutasi_pas_foto',
+        existingSurat.id,
+        existingPpnsDataPns.id,
+      );
+      await Promise.all(
+        existing.map(
+          (file) => file.s3_key && this.s3Service.deleteFile(file.s3_key),
+        ),
+      );
+      const upload = await this.fileUploadService.handleUpload(
+        request.mutasi_pas_foto,
+        'mutasi_pas_foto',
+        existingSurat.id,
+        existingPpnsDataPns.id,
+        'mutasi',
+        masterFile ? masterFile.id : null,
+        'mutasi_pas_foto',
         status_upload_ii.pending,
       );
       dataUploadDB.push(upload);
@@ -239,7 +290,7 @@ export class PelantikanService {
 
     // simpan file upload ke DB
     if (dataUploadDB.length > 0) {
-      await this.pelantikanRepository.createOrUpdatePpnsUpload(
+      await this.mutasiRepository.createOrUpdatePpnsUpload(
         existingSurat.id,
         dataUploadDB.map((d) => ({
           ...d,

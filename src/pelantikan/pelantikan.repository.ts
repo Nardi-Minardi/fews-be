@@ -9,7 +9,7 @@ import { SuratRepository } from 'src/surat/surat.repository';
 import { CreateResponsePelantikanPpnsDto } from './dto/create.pelantikan.dto';
 
 export type PpnsPelantikanUpdateInputWithExtra =
-  Prisma.PpnsPengangkatanUpdateInput & {
+  Prisma.PpnsPelantikanUpdateInput & {
     id_data_ppns?: number;
     no_surat?: string;
     tgl_surat?: Date;

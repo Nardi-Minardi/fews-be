@@ -479,6 +479,7 @@ export class DataMasterController {
       where: { nip: validRequest.nip },
       include: {
         ppns_wilayah_kerja: true,
+        ppns_surat: true,
       },
     });
 
@@ -495,49 +496,47 @@ export class DataMasterController {
 
     let lokasi_penempatan: any = null;
 
-    // 'verifikasi',
-    // 'pengangkatan',
-    // 'pelantikan',
-    // 'mutasi',
-    // 'pengangkatan kembali',
-    // 'perpanjang ktp',
-    // 'penerbitan kembali ktp',
-    // 'undur diri',
-    // 'pensiun',
-    // 'pemberhentian NTO',
-
     switch (validRequest.layanan) {
       case 'verifikasi':
         lokasi_penempatan = this.prismaService.ppnsVerifikasiPpns.findFirst({
-          where: {id_data_ppns: result.id},
-          select: { 
+          where: { id_data_ppns: result.id },
+          select: {
             provinsi_penempatan: true,
-            kabupaten_penempatan: true, 
-            unit_kerja: true
+            kabupaten_penempatan: true,
+            unit_kerja: true,
           },
         });
         break;
       case 'pengangkatan':
-         lokasi_penempatan = this.prismaService.ppnsPengangkatan.findFirst({
-          where: {id_data_ppns: result.id},
-          select: { 
+        lokasi_penempatan = this.prismaService.ppnsPengangkatan.findFirst({
+          where: { id_data_ppns: result.id },
+          select: {
             provinsi_penempatan: true,
-            kabupaten_penempatan: true, 
-            unit_kerja: true
+            kabupaten_penempatan: true,
+            unit_kerja: true,
           },
         });
         break;
       case 'pelantikan':
-         lokasi_penempatan = this.prismaService.ppnsPelantikan.findFirst({
-          where: {id_data_ppns: result.id},
-          select: { 
+        lokasi_penempatan = this.prismaService.ppnsPelantikan.findFirst({
+          where: { id_data_ppns: result.id },
+          select: {
             provinsi_penempatan: true,
-            kabupaten_penempatan: true, 
-            unit_kerja: true
+            kabupaten_penempatan: true,
+            unit_kerja: true,
           },
         });
         break;
       case 'mutasi':
+        lokasi_penempatan = this.prismaService.ppnsMutasi.findFirst({
+          where: { id_data_ppns: result.id },
+          select: {
+            provinsi_penempatan: true,
+            kabupaten_penempatan: true,
+            unit_kerja: true,
+          },
+        });
+        break;
       case 'pengangkatan kembali':
       case 'pemberhentian NTO':
       case 'undur diri':
@@ -545,7 +544,18 @@ export class DataMasterController {
       case 'perpanjang ktp':
     }
 
-    return {
+    //gelar depan dan gelar belakang ambil dari nama gelar. dia dipisah pake ; misal Drs.;H
+    const namaGelarParts = result.nama_gelar
+      ? result.nama_gelar.split(';').map((part) => part.trim())
+      : [];
+    const gelarDepan = namaGelarParts.length > 0 ? namaGelarParts[0] : '';
+    const gelarBelakang = namaGelarParts.length > 1 ? namaGelarParts[1] : '';
+    const jenisKemalinEnumMap: Record<string, string> = {
+      pria: 'Pria',
+      wanita: 'Wanita',
+    };
+
+    return { 
       statusCode: 200,
       message: 'Success',
       data: {
@@ -556,7 +566,9 @@ export class DataMasterController {
           nama_gelar: result.nama_gelar,
           jabatan: result.jabatan,
           pangkat_golongan: result.pangkat_golongan,
-          jenis_kelamin: result.jenis_kelamin,
+          gelar_depan: gelarDepan,
+          gelar_belakang: gelarBelakang,
+          jenis_kelamin: result.jenis_kelamin ? jenisKemalinEnumMap[result.jenis_kelamin] : '',
           agama: result.agama,
           nama_sekolah: result.nama_sekolah,
           gelar_terakhir: result.gelar_terakhir,

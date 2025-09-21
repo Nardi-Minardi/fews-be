@@ -7,6 +7,8 @@ import { PermohonanVerifikasiModule } from './permohonan-verifikasi/permohonan-v
 import { SuratModule } from './surat/surat.module';
 import { PengangkatanModule } from './pengangkatan/pengangkatan.module';
 import { PelantikanModule } from './pelantikan/pelantikan.module';
+import { MutasiModule } from './mutasi/mutasi.module';
+import { PengangkatanKembaliModule } from './pengangkatan-kembali/pengangkatan-kembali.module';
 
 @Module({
   imports: [
@@ -17,7 +19,9 @@ import { PelantikanModule } from './pelantikan/pelantikan.module';
     SuratModule,
     PermohonanVerifikasiModule,
     PengangkatanModule,
-    PelantikanModule
+    PelantikanModule,
+    MutasiModule,
+    PengangkatanKembaliModule
   ],
   controllers: [],
   providers: [],

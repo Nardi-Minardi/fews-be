@@ -5,16 +5,16 @@ import { S3Service } from 'src/common/s3.service';
 import { DataMasterRepository } from 'src/data-master/data-master.repository';
 import { LayananRepository } from 'src/layanan/layanan.repository';
 import { SuratRepository } from 'src/surat/surat.repository';
-import { PelantikanController } from './pelantikan.controller';
-import { PelantikanService } from './pelantikan.service';
-import { PelantikanRepository } from './pelantikan.repository';
+import { MutasiController } from './mutasi.controller';
+import { MutasiService } from './mutasi.service';
+import { MutasiRepository } from './mutasi.repository';
 ;
 
 @Module({
-  controllers: [PelantikanController],
+  controllers: [MutasiController],
   providers: [
-    PelantikanService,
-    PelantikanRepository,
+    MutasiService,
+    MutasiRepository,
     FileUploadService,
     FileUploadRepository,
     DataMasterRepository,
@@ -23,4 +23,4 @@ import { PelantikanRepository } from './pelantikan.repository';
     SuratRepository,
   ],
 })
-export class PelantikanModule {}
+export class MutasiModule {}
