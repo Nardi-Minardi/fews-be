@@ -30,7 +30,7 @@ import {
 } from './dto/create.surat.dto';
 import { SuratRepository } from './surat.repository';
 import { SuratService } from './surat.service';
-import { PrismaService } from 'src/common/prisma.service';
+import { PrismaService, MasterPrismaService } from 'src/common/prisma.service';
 
 @Controller('/surat')
 export class SuratController {
@@ -39,6 +39,7 @@ export class SuratController {
     private readonly prismaService: PrismaService,
     private suratService: SuratService,
     private suratRepository: SuratRepository,
+    private masterPrismaService: MasterPrismaService,
   ) {}
 
   @Get('/')
@@ -100,38 +101,50 @@ export class SuratController {
     const item = await this.suratRepository.findPpnsDataPnsByIdSurat(
       Number(idSurat),
     );
-    console.log("item", item);
+
+    // console.log("item", item);
     if (!item) {
       throw new BadRequestException('Ppns Surat not found');
     }
 
-    const mappedItem = item.map((calon) => ({
-      id: calon.id || null,
-      id_surat: calon.id_surat || null,
-      no_surat: calon.ppns_surat?.no_surat || null,
-      nama: calon.nama || null,
-      nip: calon.nip || null,
-      nama_gelar: calon.nama_gelar || null,
-      jabatan: calon.jabatan || null,
-      pangkat_atau_golongan: calon.pangkat_golongan || null,
-      jenis_kelamin: calon.jenis_kelamin || null,
-      agama: calon.agama || null,
-      nama_sekolah: calon.nama_sekolah || null,
-      gelar_terakhir: calon.gelar_terakhir || null,
-      no_ijazah: calon.no_ijazah || null,
-      tgl_ijazah: calon.tgl_ijazah ? calon.tgl_ijazah.toISOString() : null,
-      tahun_lulus: calon.tahun_lulus || null,
-      ppns_wilayah_kerja: calon.ppns_wilayah_kerja.map((wilayah) => ({
-        id: wilayah.id || null,
-        id_ppns: wilayah.id_ppns || null,
-        id_surat: wilayah.id_surat || null,
-        uu_dikawal: [
-          wilayah.uu_dikawal_1,
-          wilayah.uu_dikawal_2,
-          wilayah.uu_dikawal_3,
-        ].filter((uu): uu is string => !!uu), // hanya ambil yang tidak null/undefined
-      })),
-    }));
+    const mappedItem: any[] = [];
+    for (const calon of item) {
+      const dataAgama = await this.masterPrismaService.agama.findFirst({
+        where: { id_agama: calon.agama || undefined },
+      });
+      const dataPangkatGolongan = await this.prismaService.ppnsPangkatGolongan.findFirst({
+        where: { id: calon.pangkat_golongan ? Number(calon.pangkat_golongan) : undefined },
+      });
+      mappedItem.push({
+        id: calon.id || null,
+        id_surat: calon.id_surat || null,
+        no_surat: calon.ppns_surat?.no_surat || null,
+        nama: calon.nama || null,
+        nip: calon.nip || null,
+        nama_gelar: calon.nama_gelar || null,
+        jabatan: calon.jabatan || null,
+        pangkat_golongan: calon.pangkat_golongan || null,
+        data_pangkat_golongan: dataPangkatGolongan || null,
+        jenis_kelamin: calon.jenis_kelamin || null,
+        agama: calon.agama || null,
+        data_agama: dataAgama,
+        nama_sekolah: calon.nama_sekolah || null,
+        gelar_terakhir: calon.gelar_terakhir || null,
+        no_ijazah: calon.no_ijazah || null,
+        tgl_ijazah: calon.tgl_ijazah ? calon.tgl_ijazah.toISOString() : null,
+        tahun_lulus: calon.tahun_lulus || null,
+        ppns_wilayah_kerja: calon.ppns_wilayah_kerja.map((wilayah) => ({
+          id: wilayah.id || null,
+          id_ppns: wilayah.id_ppns || null,
+          id_surat: wilayah.id_surat || null,
+          uu_dikawal: [
+            wilayah.uu_dikawal_1,
+            wilayah.uu_dikawal_2,
+            wilayah.uu_dikawal_3,
+          ].filter((uu): uu is string => !!uu), // hanya ambil yang tidak null/undefined
+        })),
+      });
+    }
     return {
       statusCode: 200,
       message: 'Success',

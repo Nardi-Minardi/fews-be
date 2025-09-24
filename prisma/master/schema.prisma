@@ -58,3 +58,10 @@ model NotarisPengganti {
 
   @@map("notaris")
 }
+
+model Agama {
+  id_agama          Int     @id @default(autoincrement())
+  agama       String? @db.VarChar(255)
+
+  @@map("r_agama")
+}
