@@ -468,6 +468,7 @@ export class SuratRepository {
         await this.prismaService.ppnsPengangkatan.create({
           data: {
             id_data_ppns: result.id,
+            id_surat: result.id_surat,
             provinsi_penempatan,
             kabupaten_penempatan,
             unit_kerja,
@@ -493,6 +494,7 @@ export class SuratRepository {
         await this.prismaService.ppnsPelantikan.create({
           data: {
             id_data_ppns: result.id,
+            id_surat: result.id_surat,
             provinsi_penempatan,
             kabupaten_penempatan,
             unit_kerja,
@@ -545,6 +547,7 @@ export class SuratRepository {
         await this.prismaService.ppnsPengangkatanKembali.create({
           data: {
             id_data_ppns: result.id,
+            id_surat: result.id_surat,
             provinsi_penempatan,
             kabupaten_penempatan,
             unit_kerja,
@@ -569,6 +572,7 @@ export class SuratRepository {
         await this.prismaService.ppnsPerpanjangKtp.create({
           data: {
             id_data_ppns: result.id,
+            id_surat: result.id_surat,
             provinsi_penempatan,
             kabupaten_penempatan,
             unit_kerja,
@@ -625,6 +629,7 @@ export class SuratRepository {
         await this.prismaService.ppnsPemberhentianPensiun.create({
           data: {
             id_data_ppns: result.id,
+            id_surat: result.id_surat,
             provinsi_penempatan,
             kabupaten_penempatan,
             unit_kerja,
@@ -649,6 +654,7 @@ export class SuratRepository {
         await this.prismaService.ppnsPemberhentianUndurDiri.create({
           data: {
             id_data_ppns: result.id,
+            id_surat: result.id_surat,
             provinsi_penempatan,
             kabupaten_penempatan,
             unit_kerja,
