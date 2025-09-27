@@ -329,6 +329,7 @@ export class SuratRepository {
 
   async savePpnsDataPns(
     data: Prisma.PpnsDataPnsCreateInput & {
+      id?: number | null;
       provinsi_penempatan?: number;
       kabupaten_penempatan?: number;
       unit_kerja?: string;
@@ -351,55 +352,68 @@ export class SuratRepository {
       ...ppnsData
     } = data;
 
-    // ✅ 1. Cari apakah data sudah ada
-    let existing = await this.prismaService.ppnsDataPns.findFirst({
-      where: {
-        id_surat: data.id_surat,
-      },
-      include: {
-        ppns_wilayah_kerja: true,
-        ppns_verifikasi_ppns: true,
-      },
-    });
+    let result: any;
 
-    let result;
-
-    if (existing) {
-      // 🔥 Hapus dulu semua wilayah kerja lama
-      await this.prismaService.wilayahKerja.deleteMany({
-        where: { id_ppns: existing.id },
-      });
-
-      // ✅ 2. Update jika sudah ada
-      // Remove 'ppns_surat' if present, as update does not accept nested create inputs
-      const { ppns_surat, ...updateData } = ppnsData as any;
-      result = await this.prismaService.ppnsDataPns.update({
-        where: { id: existing.id },
-        data: updateData,
+    if (data.id) {
+      // ✅ Kalau ada id → update
+      let existing = await this.prismaService.ppnsDataPns.findFirst({
+        where: {
+          id: data.id,
+          id_surat: data.id_surat,
+        },
         include: {
           ppns_wilayah_kerja: true,
           ppns_verifikasi_ppns: true,
         },
       });
-      // ✅ Insert ulang wilayah kerja baru kalau ada di input
-      if ((ppnsData as any).ppns_wilayah_kerja?.length) {
-        await this.prismaService.wilayahKerja.createMany({
-          data: (ppnsData as any).ppns_wilayah_kerja.map((w) => ({
-            ...w,
-            id_ppns: result.id,
-          })),
+
+      if (existing) {
+        // hapus wilayah lama
+        await this.prismaService.wilayahKerja.deleteMany({
+          where: { id_ppns: existing.id },
         });
 
-        // refresh result biar return sudah include data terbaru
-        result = await this.prismaService.ppnsDataPns.findUnique({
-          where: { id: result.id },
-          include: { ppns_wilayah_kerja: true, ppns_verifikasi_ppns: true },
+        // update data utama
+        const { ppns_surat, ...updateData } = ppnsData as any;
+        result = await this.prismaService.ppnsDataPns.update({
+          where: { id: existing.id },
+          data: updateData,
+          include: {
+            ppns_wilayah_kerja: true,
+            ppns_verifikasi_ppns: true,
+          },
+        });
+
+        // insert ulang wilayah kerja
+        if ((ppnsData as any).ppns_wilayah_kerja?.length) {
+          await this.prismaService.wilayahKerja.createMany({
+            data: (ppnsData as any).ppns_wilayah_kerja.map((w) => ({
+              ...w,
+              id_ppns: result.id,
+            })),
+          });
+
+          result = await this.prismaService.ppnsDataPns.findUnique({
+            where: { id: result.id },
+            include: { ppns_wilayah_kerja: true, ppns_verifikasi_ppns: true },
+          });
+        }
+      } else {
+        // fallback → kalau id tidak ketemu, anggap create baru
+        result = await this.prismaService.ppnsDataPns.create({
+          data: (() => {
+            const { ppns_surat, ...rest } = ppnsData as any;
+            return rest;
+          })(),
+          include: {
+            ppns_wilayah_kerja: true,
+            ppns_verifikasi_ppns: true,
+          },
         });
       }
     } else {
-      // ✅ 3. Create jika belum ada
+      // ✅ Kalau id null/undefined → selalu create baru
       result = await this.prismaService.ppnsDataPns.create({
-        // Remove 'ppns_surat' if present, as create does not accept nested create inputs
         data: (() => {
           const { ppns_surat, ...rest } = ppnsData as any;
           return rest;
@@ -409,8 +423,6 @@ export class SuratRepository {
           ppns_verifikasi_ppns: true,
         },
       });
-
-      // ✅ 4. Tambahan create otomatis (hanya saat create pertama)
     }
 
     const surat = await this.prismaService.ppnsSurat.findUnique({
@@ -581,9 +593,10 @@ export class SuratRepository {
         });
       }
     } else if (layanan.nama === 'penerbitan kembali ktp') {
-      const existing = await this.prismaService.ppnsPenerbitanKembaliKtp.findUnique({
-        where: { id_data_ppns: result.id },
-      });
+      const existing =
+        await this.prismaService.ppnsPenerbitanKembaliKtp.findUnique({
+          where: { id_data_ppns: result.id },
+        });
       if (existing) {
         await this.prismaService.ppnsPenerbitanKembaliKtp.update({
           where: { id: existing.id },
@@ -613,9 +626,10 @@ export class SuratRepository {
         });
       }
     } else if (layanan.nama === 'pensiun') {
-      const existing = await this.prismaService.ppnsPemberhentianPensiun.findUnique({
-        where: { id_data_ppns: result.id },
-      });
+      const existing =
+        await this.prismaService.ppnsPemberhentianPensiun.findUnique({
+          where: { id_data_ppns: result.id },
+        });
       if (existing) {
         await this.prismaService.ppnsPemberhentianPensiun.update({
           where: { id: existing.id },
@@ -638,9 +652,10 @@ export class SuratRepository {
         });
       }
     } else if (layanan.nama === 'undur diri') {
-      const existing = await this.prismaService.ppnsPemberhentianUndurDiri.findUnique({
-        where: { id_data_ppns: result.id },
-      });
+      const existing =
+        await this.prismaService.ppnsPemberhentianUndurDiri.findUnique({
+          where: { id_data_ppns: result.id },
+        });
       if (existing) {
         await this.prismaService.ppnsPemberhentianUndurDiri.update({
           where: { id: existing.id },
@@ -663,9 +678,11 @@ export class SuratRepository {
         });
       }
     } else if (layanan.nama === 'pemberhentian NTO') {
-      const existing = await this.prismaService.ppnsPemberhentianNto.findUnique({
-        where: { id_data_ppns: result.id },
-      });
+      const existing = await this.prismaService.ppnsPemberhentianNto.findUnique(
+        {
+          where: { id_data_ppns: result.id },
+        },
+      );
       if (existing) {
         await this.prismaService.ppnsPemberhentianNto.update({
           where: { id: existing.id },
@@ -673,6 +690,7 @@ export class SuratRepository {
             provinsi_penempatan,
             kabupaten_penempatan,
             unit_kerja,
+            id_surat: result.id_surat,
           },
         });
       } else {
@@ -681,13 +699,13 @@ export class SuratRepository {
             id_data_ppns: result.id,
             provinsi_penempatan,
             kabupaten_penempatan,
+            id_surat: result.id_surat,
             unit_kerja,
             created_by,
           },
         });
       }
     }
-    
 
     // ✅ 5. Mapping response tetap sama
     const identitasPns = {
@@ -742,6 +760,9 @@ export class SuratRepository {
   }
 
   async findPpnsDataPnsByIdSurat(id_surat: number) {
+    if (!id_surat) {
+      throw new BadRequestException('id_surat is required');
+    }
     return this.prismaService.ppnsDataPns.findMany({
       where: { id_surat },
       include: {
@@ -818,9 +839,7 @@ export class SuratRepository {
     const kartuTandaPenyidik = {
       no_ktp: (data as any).kartu_tanda_penyidik_no_ktp || null,
       tgl_ktp: (data as any).kartu_tanda_penyidik_tgl_ktp
-        ? (data as any).kartu_tanda_penyidik_tgl_ktp
-            .toISOString()
-            .split('T')[0]
+        ? (data as any).kartu_tanda_penyidik_tgl_ktp.toISOString().split('T')[0]
         : null,
       tgl_berlaku_ktp: (data as any).karta_tanda_penyidik_tgl_berlaku_ktp
         ? (data as any).karta_tanda_penyidik_tgl_berlaku_ktp
@@ -842,7 +861,6 @@ export class SuratRepository {
   async updatePpnsUploadIdPpns(
     id_surat: number,
     id_ppns: number,
-    userId: number,
   ) {
     console.log('DEBUG updatePpnsUploadIdPpns:', { id_surat, id_ppns });
 
@@ -852,7 +870,6 @@ export class SuratRepository {
         OR: [
           { id_data_ppns: null }, // kalau NULL
           { id_data_ppns: 0 }, // kalau default-nya 0
-          { id_data_ppns: userId }, // atau masih pakai userId sementara
         ],
       },
       data: { id_data_ppns: id_ppns },

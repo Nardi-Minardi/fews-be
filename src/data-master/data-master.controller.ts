@@ -27,14 +27,17 @@ import {
 } from './dto/data-master.dto';
 import { SuratRepository } from 'src/surat/surat.repository';
 import { getUserFromToken } from 'src/common/utils/helper.util';
-import { PrismaService } from 'src/common/prisma.service';
+import { MasterPrismaService, PrismaService } from 'src/common/prisma.service';
+import { ApiOperation, ApiTags } from '@nestjs/swagger';
 
+@ApiTags('Data Master')
 @Controller('/data-master')
 export class DataMasterController {
   constructor(
     private dataMasterService: DataMasterService,
     private dataMasterRepository: DataMasterRepository,
     private suratRepository: SuratRepository,
+    private masterPrismaService: MasterPrismaService,
     private prismaService: PrismaService,
     private validationService: ValidationService,
     @Inject(WINSTON_MODULE_PROVIDER) private readonly logger: Logger, // perbaikan
@@ -42,8 +45,9 @@ export class DataMasterController {
 
   @Get('/notaris-pengganti/search')
   @HttpCode(200)
+  @ApiOperation({ summary: 'Search Notaris Pengganti by name' })
   async getNotarisPengganti(
-    @Query('nama') nama: string,
+    @Query('nama') nama: string | null,
   ): Promise<WebResponse<ResponseNotarisPenggantiDto>> {
     const result = await this.dataMasterService.searchNotarisPengganti({
       nama: nama?.trim() || '',
@@ -55,18 +59,19 @@ export class DataMasterController {
     };
   }
 
-  @Get('/notaris-pengganti/:idNotarisPengganti')
+  @Get('/notaris-pengganti/:id_notaris_pengganti')
   @HttpCode(200)
+  @ApiOperation({ summary: 'Get Notaris Pengganti detail by id' })
   async getNotarisPenggantiDetail(
-    @Param('idNotarisPengganti') idNotarisPengganti: string,
+    @Param('id_notaris_pengganti') id_notaris_pengganti: string,
   ): Promise<WebResponse<NotarisPenggantiDto>> {
     const result = await this.dataMasterRepository.findNotarisPenggantiById(
-      Number(idNotarisPengganti),
+      Number(id_notaris_pengganti),
     );
 
     if (!result) {
       throw new NotFoundException(
-        `Notaris Pengganti with id ${idNotarisPengganti} not found`,
+        `Notaris Pengganti with id ${id_notaris_pengganti} not found`,
       );
     }
 
@@ -84,21 +89,22 @@ export class DataMasterController {
     };
   }
 
-  @Get('/kbli/:idKbli')
+  @Get('/kbli/:id_kbli')
   @HttpCode(200)
+  @ApiOperation({ summary: 'Get KBLI detail by id' })
   async detailKbli(
-    @Param('idKbli') idKbli: string,
+    @Param('id_kbli') id_kbli: string,
   ): Promise<WebResponse<KbliDto>> {
     const rawResult = await this.dataMasterRepository.findKbliById(
-      Number(idKbli),
+      Number(id_kbli),
     );
 
     if (!rawResult) {
-      throw new NotFoundException(`KBLI with id ${idKbli} not found`);
+      throw new NotFoundException(`KBLI with id ${id_kbli} not found`);
     }
 
     const result: KbliDto = {
-      idKbli: rawResult.id_kbli,
+      id_kbli: rawResult.id_kbli,
       kode: rawResult.kode,
       kategori: rawResult.kategori,
       judul: rawResult.judul,
@@ -116,13 +122,14 @@ export class DataMasterController {
 
   @Get('/layanan')
   @HttpCode(200)
+  @ApiOperation({ summary: 'Get all Layanan' })
   // @RedisCache('badan-usaha-admin-transaksi-list', 60)
   async getAllLayanan(
-    @Query('search') search: string,
+    @Query('search') search: string | null,
     @Query('page') page: string,
     @Query('limit') limit: string,
-    @Query('orderBy') orderBy: string,
-    @Query('filters') filters: string,
+    @Query('orderBy') orderBy: string | null,
+    @Query('filters') filters: string | null,
     @Req() request: Request,
   ): Promise<WebResponse<any[], Pagination>> {
     let result;
@@ -178,13 +185,14 @@ export class DataMasterController {
 
   @Get('/kementerian')
   @HttpCode(200)
+  @ApiOperation({ summary: 'Get all Kementerian' })
   // @RedisCache('badan-usaha-admin-transaksi-list', 60)
   async getAllKementerian(
-    @Query('search') search: string,
+    @Query('search') search: string | null,
     @Query('page') page: string,
     @Query('limit') limit: string,
-    @Query('orderBy') orderBy: string,
-    @Query('filters') filters: string,
+    @Query('orderBy') orderBy: string | null,
+    @Query('filters') filters: string | null,
     @Req() request: Request,
   ): Promise<WebResponse<any[], Pagination>> {
     let result;
@@ -240,13 +248,14 @@ export class DataMasterController {
 
   @Get('/pangkat-golongan')
   @HttpCode(200)
+  @ApiOperation({ summary: 'Get all Pangkat Golongan' })
   // @RedisCache('badan-usaha-admin-transaksi-list', 60)
   async getAllPangkatGolongan(
-    @Query('search') search: string,
+    @Query('search') search: string | null,
     @Query('page') page: string,
     @Query('limit') limit: string,
-    @Query('orderBy') orderBy: string,
-    @Query('filters') filters: string,
+    @Query('orderBy') orderBy: string | null,
+    @Query('filters') filters: string | null,
     @Req() request: Request,
   ): Promise<WebResponse<any[], Pagination>> {
     let result;
@@ -303,13 +312,14 @@ export class DataMasterController {
 
   @Get('/data-ppns')
   @HttpCode(200)
+  @ApiOperation({ summary: 'Get all Data PPNS' })
   // @RedisCache('badan-usaha-admin-transaksi-list', 60)
   async getAllDataPpns(
-    @Query('search') search: string,
+    @Query('search') search: string | null,
     @Query('page') page: string,
     @Query('limit') limit: string,
-    @Query('orderBy') orderBy: string,
-    @Query('filters') filters: string,
+    @Query('orderBy') orderBy: string | null,
+    @Query('filters') filters: string | null,
     @Req() request: Request,
   ): Promise<WebResponse<any[], Pagination>> {
     let result;
@@ -365,13 +375,14 @@ export class DataMasterController {
 
   @Get('/instansi')
   @HttpCode(200)
+  @ApiOperation({ summary: 'Get all Instansi' })
   // @RedisCache('badan-usaha-admin-transaksi-list', 60)
   async getAllInstansi(
-    @Query('search') search: string,
+    @Query('search') search: string | null,
     @Query('page') page: string,
     @Query('limit') limit: string,
-    @Query('orderBy') orderBy: string,
-    @Query('filters') filters: string,
+    @Query('orderBy') orderBy: string | null,
+    @Query('filters') filters: string | null,
     @Req() request: Request,
   ): Promise<WebResponse<any[], Pagination>> {
     let result;
@@ -425,19 +436,21 @@ export class DataMasterController {
     };
   }
 
-  @Get('/instansi/:idKementerian')
+  @Get('/instansi/:id_kementerian')
   @HttpCode(200)
+  @ApiOperation({ summary: 'Get Instansi by id_kementerian' })
   async detailInstansiByIdKementerian(
-    @Param('idKementerian') idKementerian: string,
+    @Param('id_kementerian') id_kementerian: string,
   ): Promise<WebResponse<ListInstansiDto[]>> {
+   
     const rawResults =
       await this.dataMasterRepository.findInstansiByIdKementerian(
-        Number(idKementerian),
+        Number(id_kementerian),
       );
 
     if (!rawResults || rawResults.length === 0) {
       throw new NotFoundException(
-        `Instansi with id_kementerian ${idKementerian} not found`,
+        `Instansi with id_kementerian ${id_kementerian} not found`,
       );
     }
 
@@ -457,8 +470,9 @@ export class DataMasterController {
   }
 
   @Get('/calon-ppns/:layanan/:nip')
+  @ApiOperation({ summary: 'Get Data PPNS search by NIP' })
   @HttpCode(200)
-  async getByNoSurat(
+  async getByCalonPPns(
     @Param('nip') nip: string,
     @Param('layanan') layanan: string,
     @Headers() headers: Record<string, any>,
@@ -495,6 +509,18 @@ export class DataMasterController {
     }));
 
     let lokasi_penempatan: any = null;
+
+    const dataAgama = await this.masterPrismaService.agama.findFirst({
+      where: { id_agama: result.agama || undefined },
+    });
+    const dataPangkatGolongan =
+      await this.prismaService.ppnsPangkatGolongan.findFirst({
+        where: {
+          id: result.pangkat_golongan
+            ? Number(result.pangkat_golongan)
+            : undefined,
+        },
+      });
 
     switch (validRequest.layanan) {
       case 'verifikasi':
@@ -586,6 +612,8 @@ export class DataMasterController {
           nama_gelar: result.nama_gelar,
           jabatan: result.jabatan,
           pangkat_golongan: result.pangkat_golongan,
+          data_pangkat_golongan: dataPangkatGolongan || null,
+          data_agama: dataAgama,
           gelar_depan: gelarDepan,
           gelar_belakang: gelarBelakang,
           jenis_kelamin: result.jenis_kelamin
@@ -600,7 +628,7 @@ export class DataMasterController {
             : null,
           tahun_lulus: result.tahun_lulus,
         },
-        wilayah_kerja: wilayahKerja,
+        // wilayah_kerja: wilayahKerja,
         lokasi_penempatan: await lokasi_penempatan,
       },
     };

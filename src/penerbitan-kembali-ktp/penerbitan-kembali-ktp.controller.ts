@@ -12,9 +12,10 @@ import { Pagination, WebResponse } from 'src/common/web.response';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { Logger } from 'winston';
 import { FileFieldsInterceptor } from '@nestjs/platform-express';
-import { CreateResponsePenerbitanKembaliKtpPpnsDto } from './dto/create.penerbitan-kembali-ktp.dto';
 import { PenerbitanKembaliKtpService } from './penerbitan-kembali-ktp.service';
+import { ApiBody, ApiConsumes, ApiOperation, ApiTags } from '@nestjs/swagger';
 
+@ApiTags('Penerbitan Kembali KTP')
 @Controller('/penerbitan-kembali-ktp')
 export class PenerbitanKembaliKtpController {
   constructor(
@@ -31,6 +32,35 @@ export class PenerbitanKembaliKtpController {
   )
   @Post('/upload-dokumen')
   @HttpCode(201)
+  @ApiOperation({ summary: 'Upload Dokumen' })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        id_surat: {
+          type: 'number',
+          example: 12345,
+        },
+        id_ppns: {
+          type: 'number',
+          example: 12345,
+        },
+        dok_penerbitan_kembali_ktp_surat_kehilangan: {
+          type: 'string',
+          format: 'binary',
+        },
+        dok_penerbitan_kembali_ktp_ktp_rusak: {
+          type: 'string',
+          format: 'binary',
+        },
+        penerbitan_kembali_ktp_pas_foto: {
+          type: 'string',
+          format: 'binary',
+        },
+      },
+    },
+  })
   async createDokumen(
     @UploadedFiles()
     files: {
@@ -48,7 +78,8 @@ export class PenerbitanKembaliKtpController {
         files?.dok_penerbitan_kembali_ktp_surat_kehilangan?.[0] ?? null,
       dok_penerbitan_kembali_ktp_ktp_rusak:
         files?.dok_penerbitan_kembali_ktp_ktp_rusak?.[0] ?? null,
-      penerbitan_kembali_ktp_pas_foto: files?.penerbitan_kembali_ktp_pas_foto?.[0] ?? null,
+      penerbitan_kembali_ktp_pas_foto:
+        files?.penerbitan_kembali_ktp_pas_foto?.[0] ?? null,
     };
 
     const result = await this.penerbitanKembaliKtpService.storeUploadDokumen(

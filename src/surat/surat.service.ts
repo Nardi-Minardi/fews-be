@@ -195,8 +195,13 @@ export class SuratService {
         throw new BadRequestException('User ID is missing');
       }
 
+      const masterFile =
+        await this.fileUploadRepository.getMasterPpnsUploadByIdByName(
+           'dok_surat_pernyataan',
+        );
+
       const existing = await this.fileUploadRepository.findFilePpnsUpload(
-        'dokumen_surat_pernyataan',
+        'dok_surat_pernyataan',
         Number(result.id),
         Number(result.id_user),
       );
@@ -208,12 +213,12 @@ export class SuratService {
       );
       const upload = await this.fileUploadService.handleUpload(
         request.dok_surat_pernyataan,
-        'dokumen_surat_pernyataan',
+        'dok_surat_pernyataan',
         result.id,
         null,
         namePrefixUpload,
-        dataLayanan?.id,
-        'dokumen_surat_pernyataan',
+        masterFile ? masterFile.id : null,
+        'dok_surat_pernyataan',
         upload_status_enum.pending,
       );
 
@@ -228,14 +233,14 @@ export class SuratService {
           ...d,
           id_ppns: null,
           id_surat: Number(result.id),
-          id_file_type: null,
+          id_file_type: d.master_file_id ?? null,
         })),
       );
     }
 
     // ✅ ambil ulang file upload dari DB supaya data pasti sudah tersimpan
     const dok_pernyataan = await this.fileUploadRepository.findFilePpnsUpload(
-      'dokumen_surat_pernyataan',
+      'dok_surat_pernyataan',
       Number(result.id),
       Number(result.id_user),
     );
@@ -401,7 +406,7 @@ export class SuratService {
     authorization?: string,
   ): Promise<CreateResponsePpnsDataPnsDto> {
     this.logger.debug(
-      'Request Creating permohonan verifikasi create calon pemohon',
+      'Request Creating create calon pemohon',
       { request },
     );
 
@@ -499,6 +504,7 @@ export class SuratService {
         : gelarDepan || gelarBelakang;
 
     const createData = {
+      id: createRequest.id || undefined,
       nama: createRequest.identitas_pns.nama,
       nip: createRequest.identitas_pns.nip,
       nama_gelar: namaGelar,
@@ -563,11 +569,10 @@ export class SuratService {
     // }
 
     //update id_ppns di ppns_upload yang id_ppns null dan id_surat sama dengan createRequest.id_surat
-    // await this.suratRepository.updatePpnsUploadIdPpns(
-    //   Number(createRequest.id_surat),
-    //   Number(result.id),
-    //   userLogin.user_id,
-    // );
+    await this.suratRepository.updatePpnsUploadIdPpns(
+      Number(createRequest.id_surat),
+      Number(result.id),
+    );
 
     return result;
   }

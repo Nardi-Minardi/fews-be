@@ -109,6 +109,7 @@ export class SuratValidation {
   });
 
   static readonly CREATE_CALON_PPNS: ZodType = z.object({
+    id: z.number().optional(),
     id_surat: z.number(),
     identitas_pns: z.object({
       nama: z.string().min(1, 'Nama is required'),

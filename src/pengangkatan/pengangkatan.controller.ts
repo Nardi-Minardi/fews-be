@@ -17,7 +17,9 @@ import {
 } from './dto/create.pengangkatan.dto';
 import { PengangkatanService } from './pengangkatan.service';
 import { FileFieldsInterceptor } from '@nestjs/platform-express';
+import { ApiBody, ApiConsumes, ApiOperation, ApiTags } from '@nestjs/swagger';
 
+@ApiTags('Pengangkatan')
 @Controller('/pengangkatan')
 export class PengangkatanController {
   constructor(
@@ -33,7 +35,125 @@ export class PengangkatanController {
   )
   @Post('/create')
   @HttpCode(201)
-  async createVerifikasiPpns(
+  @ApiOperation({ summary: 'Create Pengangkatan' })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        id_data_ppns: {
+          type: 'number',
+          example: 12345,
+        },
+        nama_sekolah: {
+          type: 'string',
+          example: 'Institut Pemerintahan Dalam Negeri',
+        },
+        gelar_terakhir: {
+          type: 'string',
+          example: 'S2',
+        },
+        no_ijazah: {
+          type: 'string',
+          example: 'IJZ-12345',
+        },
+        tgl_ijazah: {
+          type: 'string',
+          format: 'date',
+          example: '2023-06-12',
+        },
+        tahun_lulus: {
+          type: 'number',
+          example: 2023,
+        },
+        no_sttpl: {
+          type: 'string',
+          example: 'STTPL-12345',
+        },
+        tgl_sttpl: {
+          type: 'string',
+          format: 'date',
+          example: '2023-06-12',
+        },
+        tgl_verifikasi: {
+          type: 'string',
+          format: 'date',
+          example: '2023-06-12',
+        },
+        teknis_operasional_penegak_hukum: {
+          type: 'string',
+          example: 'true',
+        },
+        jabatan : {
+          type: 'string',
+          example: 'Penyidik',
+        },
+        cek_surat_polisi: {
+          type: 'string',
+          example: 'false',
+        },
+        no_surat_polisi: {
+          type: 'string',
+          example: 'SP-12345',
+        },
+        tgl_surat_polisi: {
+          type: 'string',
+          format: 'date',
+          example: '2023-06-12',
+        },
+        perihal_surat_polisi: {
+          type: 'string',
+          example: 'Permohonan Pengangkatan PPNS',
+        },
+        no_tanda_terima_polisi: {
+          type: 'string',
+        },
+        tgl_tanda_terima_polisi: {
+          type: 'string',
+          format: 'date',
+        },
+        perihal_tanda_terima_polisi: {
+          type: 'string',
+        },
+        dok_tanda_terima_polisi: {
+          type: 'string',
+          format: 'binary',
+        },
+        cek_surat_kejaksaan_agung: {
+          type: 'string',
+          example: 'false',
+        },
+        no_surat_kejaksaan_agung: {
+          type: 'string',
+          example: 'SA-12345',
+        },
+        tgl_surat_kejaksaan_agung: {
+          type: 'string',
+          format: 'date',
+          example: '2023-06-12',
+        },
+        perihal_surat_kejaksaan_agung: {
+          type: 'string',
+          example: 'Permohonan Pengangkatan PPNS',
+        },
+        no_tanda_terima_kejaksaan_agung: {
+          type: 'string',
+        },
+        tgl_tanda_terima_kejaksaan_agung: {
+          type: 'string',
+          format: 'date',
+        },
+        perihal_tanda_terima_kejaksaan_agung: {
+          type: 'string',
+        },
+        dok_tanda_terima_kejaksaan_agung: {
+          type: 'string',
+          format: 'binary',
+        },
+      },
+    },
+  })
+  async createPengangkatanPpns(
     @UploadedFiles()
     files: {
       dok_tanda_terima_polisi?: Express.Multer.File[];
@@ -68,6 +188,39 @@ export class PengangkatanController {
   )
   @Post('/upload-dokumen')
   @HttpCode(201)
+  @ApiOperation({ summary: 'Upload Dokumen' })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        id_surat: {
+          type: 'number',
+          example: 12345,
+        },
+        id_ppns: {
+          type: 'number',
+          example: 12345,
+        },
+        dok_surat_permohonan_pengangkatan: {
+          type: 'string',
+          format: 'binary',
+        },
+        dok_fotokopi_tamat_pendidikan: {
+          type: 'string',
+          format: 'binary',
+        },
+        dok_surat_pertimbangan: {
+          type: 'string',
+          format: 'binary',
+        },
+        foto: {
+          type: 'string',
+          format: 'binary',
+        },
+      },
+    },
+  })
   async createDokumen(
     @UploadedFiles()
     files: {

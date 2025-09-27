@@ -31,7 +31,9 @@ import {
 import { SuratRepository } from './surat.repository';
 import { SuratService } from './surat.service';
 import { PrismaService, MasterPrismaService } from 'src/common/prisma.service';
+import { ApiBody, ApiConsumes, ApiOperation, ApiTags } from '@nestjs/swagger';
 
+@ApiTags('Surat dan Calon PPNS')
 @Controller('/surat')
 export class SuratController {
   constructor(
@@ -42,17 +44,18 @@ export class SuratController {
     private masterPrismaService: MasterPrismaService,
   ) {}
 
+  @ApiOperation({ summary: 'Get all surat (ownership by login)' })
   @Get('/')
   @HttpCode(200)
   // @RedisCache('badan-usaha-perubahan-cv-list', 60)
   async getAllSurat(
     @Query('layanan') layanan: string,
-    @Query('search') search: string,
+    @Query('search') search: string | null,
     @Query('page') page: string,
     @Query('limit') limit: string,
-    @Query('orderBy') orderBy: string,
-    @Query('orderDirection') orderDirection: 'asc' | 'desc' = 'asc',
-    @Query('filters') filters: string,
+    @Query('orderBy') orderBy: string | null,
+    @Query('orderDirection') orderDirection: 'asc' | 'desc' | null,
+    @Query('filters') filters: string | null,
     @Headers() headers: Record<string, any>,
   ): Promise<WebResponse<ListSurat[], Pagination>> {
     let parsedFilters: Record<string, any> = {};
@@ -85,12 +88,17 @@ export class SuratController {
     };
   }
 
-  @Get('/calon-ppns/:idSurat')
+  @Get('/calon-ppns/:id_surat')
   @HttpCode(200)
+  @ApiOperation({ summary: 'Get detail calon ppns by id surat' })
   async detailCalonPpns(
-    @Param('idSurat') idSurat: string,
+    @Param('id_surat') id_surat: string,
     @Headers() headers: Record<string, any>,
-  ): Promise<WebResponse<ListCalonPemohon[], null> & {status_kirim_verifikator: boolean | null}> {
+  ): Promise<
+    WebResponse<ListCalonPemohon[], null> & {
+      status_kirim_verifikator: boolean | null;
+    }
+  > {
     const authorization = headers['authorization'] || '';
 
     const userLogin = await getUserFromToken(authorization);
@@ -99,7 +107,7 @@ export class SuratController {
     }
 
     const item = await this.suratRepository.findPpnsDataPnsByIdSurat(
-      Number(idSurat),
+      Number(id_surat),
     );
 
     // console.log("item", item);
@@ -112,9 +120,14 @@ export class SuratController {
       const dataAgama = await this.masterPrismaService.agama.findFirst({
         where: { id_agama: calon.agama || undefined },
       });
-      const dataPangkatGolongan = await this.prismaService.ppnsPangkatGolongan.findFirst({
-        where: { id: calon.pangkat_golongan ? Number(calon.pangkat_golongan) : undefined },
-      });
+      const dataPangkatGolongan =
+        await this.prismaService.ppnsPangkatGolongan.findFirst({
+          where: {
+            id: calon.pangkat_golongan
+              ? Number(calon.pangkat_golongan)
+              : undefined,
+          },
+        });
       mappedItem.push({
         id: calon.id || null,
         id_surat: calon.id_surat || null,
@@ -148,7 +161,9 @@ export class SuratController {
     return {
       statusCode: 200,
       message: 'Success',
-      status_kirim_verifikator: item[0]?.ppns_surat?.status ? item[0]?.ppns_surat?.status : false,
+      status_kirim_verifikator: item[0]?.ppns_surat?.status
+        ? item[0]?.ppns_surat?.status
+        : false,
       data: mappedItem,
     };
   }
@@ -158,6 +173,52 @@ export class SuratController {
     FileFieldsInterceptor([{ name: 'dok_surat_pernyataan', maxCount: 1 }]),
   )
   @Post('/create')
+  @ApiOperation({ summary: 'Create surat' })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        lembaga_kementerian: {
+          type: 'number',
+          example: 12345,
+        },
+        instansi: {
+          type: 'number',
+          example: 12345,
+        },
+        tgl_surat: {
+          type: 'string',
+          format: 'date',
+          example: '2023-10-10',
+        },
+        no_surat: {
+          type: 'string',
+          example: 'XYZ/123/PPNS/2023',
+        },
+        perihal: {
+          type: 'string',
+          example: 'Permohonan PPNS XYZ',
+        },
+        nama_pengusul: {
+          type: 'string',
+          example: 'John Doe',
+        },
+        jabatan_pengusul: {
+          type: 'string',
+          example: 'Manager',
+        },
+        dok_surat_pernyataan: {
+          type: 'string',
+          format: 'binary',
+        },
+        layanan: {
+          type: 'string',
+          example: 'verifikasi',
+        },
+      },
+    },
+  })
   @HttpCode(201)
   async createSurat(
     @UploadedFiles()
@@ -178,23 +239,74 @@ export class SuratController {
     return { statusCode: 201, message: 'Success', data: result };
   }
 
-  @Post('/send-to-verifikator')
-  @HttpCode(201)
-  async sendToVerifikator(
-    @Body() request,
-    @Headers() headers: Record<string, any>,
-  ): Promise<WebResponse<CreateResponseSendVerifikatorDto>> {
-    const authorization = headers['authorization'] || '';
-    const result = await this.suratService.doSendVerifikator(
-      request,
-      authorization,
-    );
-
-    return { statusCode: 201, message: 'Success', data: result };
-  }
-
   @Post('/calon-ppns/create')
   @HttpCode(201)
+  @ApiOperation({ summary: 'Create calon ppns/data ppns' })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        id: {
+          type: 'number',
+          description: 'ID calon PNS (optional, hanya untuk update)',
+          example: 12345,
+        },
+        id_surat: {
+          type: 'number',
+          description: 'ID surat terkait',
+          example: 12345,
+        },
+        identitas_pns: {
+          type: 'object',
+          description: 'Data identitas PNS',
+          properties: {
+            nama: { type: 'string', example: 'Budi Santoso' },
+            nip: { type: 'string', example: '198765432109876543' },
+            nama_gelar: {
+              type: 'string',
+              example: 'Dr. Budi Santoso, S.H., M.H.',
+            },
+            gelar_depan: { type: 'string', example: 'Dr. SH' },
+            gelar_belakang: { type: 'string', example: 'S.H., M.H.' },
+            jabatan: {
+              type: 'string',
+              example: 'Penyidik Pegawai Negeri Sipil',
+            },
+            pangkat_golongan: { type: 'string', example: '1' },
+            jenis_kelamin: { type: 'string', example: 'Pria' },
+            agama: { type: 'number', example: 1 },
+            nomor_hp: { type: 'string', example: '081287800921' },
+            email: { type: 'string', example: 'budi_santoso@gmail.com' },
+          },
+        },
+        wilayah_kerja: {
+          type: 'array',
+          description: 'Daftar wilayah kerja',
+          items: {
+            type: 'object',
+            properties: {
+              provinsi: { type: 'string', example: '31' },
+              kab_kota: { type: 'string', example: '3172' },
+              kecamatan: { type: 'string', example: '317401' },
+              uu_dikawal: {
+                type: 'array',
+                items: { type: 'string', example: '1' },
+              },
+            },
+          },
+        },
+        lokasi_penempatan: {
+          type: 'object',
+          description: 'Lokasi penempatan PNS',
+          properties: {
+            provinsi_penempatan: { type: 'string', example: '31' },
+            kabupaten_penempatan: { type: 'string', example: '3172' },
+            unit_kerja: { type: 'string', example: 'Satpol PP Jawa Tengah' },
+          },
+        },
+      },
+    },
+  })
   async createCalonPpns(
     @Body() request,
     @Headers() headers: Record<string, any>,
@@ -208,5 +320,30 @@ export class SuratController {
     return { statusCode: 201, message: 'Success', data: result };
   }
 
- 
+  @Post('/send-to-verifikator')
+  @HttpCode(201)
+  @ApiOperation({ summary: 'Send surat to verifikator' })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        id_surat: {
+          type: 'number',
+          example: 12345,
+        },
+      },
+    },
+  })
+  async sendToVerifikator(
+    @Body() request,
+    @Headers() headers: Record<string, any>,
+  ): Promise<WebResponse<CreateResponseSendVerifikatorDto>> {
+    const authorization = headers['authorization'] || '';
+    const result = await this.suratService.doSendVerifikator(
+      request,
+      authorization,
+    );
+
+    return { statusCode: 201, message: 'Success', data: result };
+  }
 }

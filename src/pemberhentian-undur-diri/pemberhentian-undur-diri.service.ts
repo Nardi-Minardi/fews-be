@@ -93,13 +93,13 @@ export class PemberhentianUndurDiriService {
     };
 
     //cek data
-    const existingPerpanjangKtp =
+    const existing =
       await this.pemberhentianUndurDiriRepository.findPpnsUndurDiriByIdDataPpns(
         Number(createRequest.id_data_ppns),
       );
 
     const result = await this.pemberhentianUndurDiriRepository.savePpnsUndurDiri(
-      existingPerpanjangKtp?.id ?? null,
+      existing?.id ?? null,
       createData as PpnsUndurDiriUpdateInputWithExtra,
     );
 

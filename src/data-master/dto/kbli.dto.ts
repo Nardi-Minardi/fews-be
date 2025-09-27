@@ -1,5 +1,5 @@
 export class KbliDto {
-  idKbli: number;
+  id_kbli: number;
   kode: string | null;
   kategori: string | null;
   judul: string | null;

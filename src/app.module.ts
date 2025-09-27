@@ -13,13 +13,11 @@ import { PerpanjangKtpModule } from './perpanjang-ktp/perpanjang-ktp.module';
 import { PenerbitanKembaliKtpModule } from './penerbitan-kembali-ktp/penerbitan-kembali-ktp.module';
 import { PemberhentianUndurDiriModule } from './pemberhentian-undur-diri/pemberhentian-undur-diri.module';
 import { PemberhentianPensiunModule } from './pemberhentian-pensiun/pemberhentian-pensiun.module';
+import { PemberhentianNtoModule } from './pemberhentian-nto/pemberhentian-nto.module';
 
 @Module({
   imports: [
     CommonModule,
-    AuthModule,
-    UserModule,
-    DataMasterModule,
     SuratModule,
     PermohonanVerifikasiModule,
     PengangkatanModule,
@@ -29,7 +27,11 @@ import { PemberhentianPensiunModule } from './pemberhentian-pensiun/pemberhentia
     PerpanjangKtpModule,
     PenerbitanKembaliKtpModule,
     PemberhentianUndurDiriModule,
-    PemberhentianPensiunModule
+    PemberhentianPensiunModule,
+    PemberhentianNtoModule,
+    DataMasterModule,
+    UserModule,
+    AuthModule,
   ],
   controllers: [],
   providers: [],

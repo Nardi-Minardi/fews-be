@@ -48,18 +48,24 @@ export class DataMasterRepository {
   }
 
   async findNotarisPenggantiById(
-    idNotaris: number,
+    id_notaris_pengganti: number,
   ): Promise<NotarisPengganti | null> {
+    if (!id_notaris_pengganti){
+      throw new BadRequestException('id_notaris_pengganti is required');
+    }
     const notaris = await this.masterPrismaService.notarisPengganti.findFirst({
-      where: { id: idNotaris },
+      where: { id: id_notaris_pengganti },
     });
 
     return notaris;
   }
 
-  async findKbliById(idKbli: number): Promise<Kbli | null> {
+  async findKbliById(id_kbli: number): Promise<Kbli | null> {
+    if (!id_kbli) {
+      throw new BadRequestException('id_kbli is required');
+    }
     const kbli = await this.masterPrismaService.kbli.findFirst({
-      where: { id_kbli: idKbli },
+      where: { id_kbli: id_kbli },
     });
 
     return kbli;
@@ -119,9 +125,12 @@ export class DataMasterRepository {
     return instansi;
   }
 
-  async findInstansiByIdKementerian(idKementerian: number): Promise<any> {
+  async findInstansiByIdKementerian(id_kementerian: number): Promise<any> {
+     if (!id_kementerian) {
+      throw new BadRequestException('id_kementerian is required');
+    }
     const instansi = await this.prismaService.ppnsInstansi.findMany({
-      where: { id_kementerian: idKementerian },
+      where: { id_kementerian: id_kementerian },
       include: {
         ppns_kementerian: true,
       },
@@ -490,6 +499,15 @@ export class DataMasterRepository {
       skip: (page - 1) * limit,
       take: limit,
       orderBy: { [orderBy]: orderDirection },
+      include: {
+        ppns_surat: {
+          include: {
+            ppns_layanan: true,
+            ppns_instansi: true,
+            ppns_kementerian: true,
+          },
+        }
+      },
     });
 
     return results.map((item) => ({
@@ -506,6 +524,7 @@ export class DataMasterRepository {
       gelar_terakhir: item.gelar_terakhir || null,
       no_ijazah: item.no_ijazah || null,
       tgl_ijazah: item.tgl_ijazah ? item.tgl_ijazah.toISOString() : null,
+      layanan: item.ppns_surat?.ppns_layanan ? [item.ppns_surat.ppns_layanan] : [],
     }));
   }
 

@@ -2,12 +2,12 @@ import { Pagination } from "src/common/web.response";
 
 export class SuratPaginationDto {
   layanan?: string;
-  search?: string;
+  search?: string | null;
   page: string;
   limit: string;
-  orderBy?: string;
-  orderDirection?: 'asc' | 'desc';
-  filters?: Record<string, any>;
+  orderBy?: string | null;
+  orderDirection?: 'asc' | 'desc' | null;
+  filters?: Record<string, any> | null;
 }
 
 export class GetSuratPaginationDto {

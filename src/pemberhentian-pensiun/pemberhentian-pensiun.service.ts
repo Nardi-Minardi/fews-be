@@ -30,7 +30,7 @@ export class PemberhentianPensiunService {
     private validationService: ValidationService,
     private fileUploadService: FileUploadService,
     private fileUploadRepository: FileUploadRepository,
-    private pemberhentianUndurDiriRepository: PemberhentianPensiunRepository,
+    private pemberhentianPensiunRepository: PemberhentianPensiunRepository,
     private suratRepository: SuratRepository,
     private s3Service: S3Service,
   ) {}
@@ -89,13 +89,13 @@ export class PemberhentianPensiunService {
     };
 
     //cek data
-    const existingPerpanjangKtp =
-      await this.pemberhentianUndurDiriRepository.findPpnsPensiunByIdDataPpns(
+    const existing =
+      await this.pemberhentianPensiunRepository.findPpnsPensiunByIdDataPpns(
         Number(createRequest.id_data_ppns),
       );
 
-    const result = await this.pemberhentianUndurDiriRepository.savePpnsPensiun(
-      existingPerpanjangKtp?.id ?? null,
+    const result = await this.pemberhentianPensiunRepository.savePpnsPensiun(
+      existing?.id ?? null,
       createData as PpnsPensiunUpdateInputWithExtra,
     );
 
@@ -265,7 +265,7 @@ export class PemberhentianPensiunService {
 
     // simpan file upload ke DB
     if (dataUploadDB.length > 0) {
-      await this.pemberhentianUndurDiriRepository.createOrUpdatePpnsUpload(
+      await this.pemberhentianPensiunRepository.createOrUpdatePpnsUpload(
         existingSurat.id,
         dataUploadDB.map((d) => ({
           ...d,
