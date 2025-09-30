@@ -6,7 +6,9 @@ import { getUserFromToken } from 'src/common/utils/helper.util';
 import { WebResponse } from 'src/common/web.response';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { Logger } from 'winston';
+import { ApiOperation, ApiTags } from '@nestjs/swagger';
 
+@ApiTags('User')
 @Controller('/user')
 export class UserController {
   constructor(
@@ -15,6 +17,7 @@ export class UserController {
   ) {}
 
   @Get('/profile')
+  @ApiOperation({ summary: 'Get User Profile' })
   @HttpCode(200)
   async getProfile(
     @Headers() headers: Record<string, any>,

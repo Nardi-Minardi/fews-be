@@ -8,6 +8,10 @@ import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { Logger } from 'winston';
 import Redis from 'ioredis';
 
+// Cek dulu ke Redis apakah data sudah ada.
+// Kalau ada → langsung return dari cache.
+// Kalau belum ada → query ke database, lalu simpan ke Redis dengan TTL.
+//Redis bisa dipakai untuk mempercepat koordinasi dan mengurangi query ke database, bukan untuk menyimpan file binary.
 @Injectable()
 export class RedisService implements OnModuleInit, OnModuleDestroy {
   private client: Redis;
@@ -18,9 +22,9 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
 
   onModuleInit() {
     this.client = new Redis({
-      host: process.env.REDIS_HOST,
-      port: Number(process.env.REDIS_PORT),
-      password: process.env.REDIS_PASSWORD,
+      host: process.env.REDIS_URL || 'localhost',
+      port: Number(process.env.REDIS_PORT) || 6379,
+      password: process.env.REDIS_PASSWORD || undefined,
     });
 
     this.client.on('connect', () => {
