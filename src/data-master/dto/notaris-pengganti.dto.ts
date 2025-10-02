@@ -2,7 +2,7 @@ export class NotarisPenggantiDto {
   id: number;
   nama: string | null;
   provinsi: string | null;
-  idProvinsi: number | null;
+  id_provinsi: number | null;
 }
 
 export class ResponseNotarisPenggantiDto {

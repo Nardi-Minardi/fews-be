@@ -79,7 +79,7 @@ export class DataMasterController {
       id: result.id,
       nama: result.nama,
       provinsi: result.provinsi,
-      idProvinsi: result.id_provinsi,
+      id_provinsi: result.id_provinsi,
     };
 
     return {

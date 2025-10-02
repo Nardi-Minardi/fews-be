@@ -76,7 +76,7 @@ export class DataMasterService {
         id: item.id,
         nama: item.nama,
         provinsi: item.provinsi,
-        idProvinsi: item.id_provinsi,
+        id_provinsi: item.id_provinsi,
       })),
       countData,
     };
