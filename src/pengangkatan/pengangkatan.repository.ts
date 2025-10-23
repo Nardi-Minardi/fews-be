@@ -54,6 +54,7 @@ export class PengangkatanRepository {
   async savePpnsPengangkatan(
     data: PpnsPengangkatanCreateInputWithExtra,
   ): Promise<CreateResponsePengangkatanPpnsDto> {
+    console.log('Creating PPNS Pengangkatan with data:', data);
     const result = await this.prismaService.ppnsPengangkatan.create({
       data,
     });
@@ -132,6 +133,8 @@ export class PengangkatanRepository {
     id: number,
     data: PpnsPengangkatanUpdateInputWithExtra,
   ): Promise<CreateResponsePengangkatanPpnsDto> {
+
+    console.log('Updating PPNS Pengangkatan with data:', data);
     // Cari id_surat lebih awal
     let idSurat: number | null = null;
     if (typeof data.id_data_ppns === 'number') {
@@ -233,6 +236,14 @@ export class PengangkatanRepository {
     return this.prismaService.ppnsPengangkatan.findFirst({
       where: { id_data_ppns: id_data_ppns },
     });
+  }
+
+  async findPpnsPengangkatanByIdSurat(id_surat: number) {
+    const result = await this.prismaService.ppnsPengangkatan.findFirst({
+      where: { id_surat: id_surat },
+    });
+
+    return result;
   }
 
   async createOrUpdatePpnsUpload(

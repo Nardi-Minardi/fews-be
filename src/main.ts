@@ -13,7 +13,7 @@ async function bootstrap() {
 
   // Global CORS
   app.enableCors({
-    origin: true,
+    origin: true, // TODO: batasi di production
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
     credentials: true,
     allowedHeaders: [
@@ -34,27 +34,20 @@ async function bootstrap() {
     }),
   );
 
-  // Swagger config
+  // Setup OpenAPI config
   const config = new DocumentBuilder()
     .setTitle('AHU PPNS API')
     .setDescription('API documentation for AHU PPNS application')
     .setVersion('1.0')
     .addBearerAuth()
-    // penting → supaya Scalar/Swagger tahu base URL
-    .addServer('https://portal-ahu.bht.co.id/api/v1/ppns')
     .build();
 
   const document = SwaggerModule.createDocument(app, config);
 
-  // Swagger UI resmi → /api/v1/ppns/docs-swagger
-  SwaggerModule.setup('docs-swagger', app, document);
+  // Swagger UI resmi di /api
+  SwaggerModule.setup('api', app, document);
 
-  // Serve raw OpenAPI JSON di /api/v1/ppns/api-json
-  app.getHttpAdapter().get('/api-json', (req, res) => {
-    res.json(document);
-  });
-
-  // Scalar UI → /api/v1/ppns/docs
+  // ✅ Scalar UI Documentation (pakai /api-json bawaan SwaggerModule)
   app.getHttpAdapter().get('/docs', (req, res) => {
     const html = `
     <!doctype html>
@@ -63,12 +56,14 @@ async function bootstrap() {
         <title>AHU PPNS API Documentation</title>
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <style>body { margin: 0; padding: 0; }</style>
+        <style>
+          body { margin: 0; padding: 0; }
+        </style>
       </head>
       <body>
         <script
           id="api-reference"
-          data-url="/api/v1/ppns/api-json"
+          data-url="/api-json"
           data-configuration='{
             "theme": "kepler",
             "layout": "modern",
@@ -83,5 +78,8 @@ async function bootstrap() {
   });
 
   await app.listen(process.env.PORT || 3013, '0.0.0.0');
+  console.log(
+    `Application is running on: http://localhost:${process.env.PORT ?? 3013}`,
+  );
 }
 void bootstrap();

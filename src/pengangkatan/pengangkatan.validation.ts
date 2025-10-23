@@ -18,8 +18,8 @@ const zBooleanFromFormData = z.preprocess(
 
 export class PengangkatanValidation {
   static readonly CREATE_PENGANGKATAN_PPNS: ZodType = z.object({
-      id_data_ppns: z.string().min(1, 'id_data_ppns is required'),
-
+      // id_data_ppns: z.string().min(1, 'id_data_ppns is required'),
+      id_surat: z.string().min(1, 'id_surat is required'),
       nama_sekolah: z.string().min(1, 'Nama Sekolah is required'),
       gelar_terakhir: z.string().min(1, 'Gelar Terakhir is required'),
       no_ijazah: z.string().min(1, 'No Ijazah is required'),

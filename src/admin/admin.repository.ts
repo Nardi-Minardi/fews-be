@@ -4,7 +4,11 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { MasterPrismaService, PrismaService } from 'src/common/prisma.service';
-import { Prisma, status_upload_ii } from '.prisma/main-client/client';
+import {
+  Prisma,
+  status_upload_ii,
+  verifikasi_enum,
+} from '.prisma/main-client/client';
 import { SuratRepository } from 'src/surat/surat.repository';
 import { DaftarVerifikasiPaginationDto } from './dto/get.admin.dto';
 import { suratAllowedFields } from 'src/common/constants/surat.fields';
@@ -145,14 +149,172 @@ export class AdminRepository {
         ppns_kementerian: true,
         ppns_instansi: true,
         ppns_layanan: true,
+        ppns_data_pns: true,
       },
     });
 
-    // mapping hasil
-    return results.map((item) => ({
-      ...item,
-      page: String(page),
-      limit: String(limit),
-    }));
+    const mappedResults: any[] = [];
+    for (const item of results) {
+      mappedResults.push({
+        ...item,
+        count_calon_ppns: item.ppns_data_pns.length,
+      });
+    }
+
+    return mappedResults;
+  }
+
+  async countPpnsDataPnsByIdSurat(id_surat: number): Promise<number> {
+    return this.prismaService.ppnsDataPns.count({
+      where: { id_surat },
+    });
+  }
+
+  async findPpnsDataPnsByIdSurat(
+    id_surat: number,
+    limit?: number,
+    offset?: number,
+  ) {
+    if (!id_surat) {
+      throw new BadRequestException('id_surat is required');
+    }
+
+    const item = await this.prismaService.ppnsDataPns.findMany({
+      where: { id_surat },
+      skip: offset,
+      take: limit,
+      include: {
+        ppns_surat: true,
+        ppns_wilayah_kerja: true,
+        ppns_mutasi: true,
+        ppns_pelantikan: true,
+        ppns_pemberhentian_nto: true,
+        ppns_pemberhentian_pensiun: true,
+        ppns_pemberhentian_undur_diri: true,
+        ppns_penerbitan_ktp: true,
+        ppns_pengangkatan: true,
+        ppns_pengangkatan_kembali: true,
+        ppns_perpanjang_ktp: true,
+        ppns_upload: true,
+        ppns_verifikasi_ppns: true,
+        data_verifikasi_admin: true,
+      },
+    });
+
+    const mappedItem: any[] = [];
+
+    for (const calon of item) {
+      // ambil data referensi agama & pangkat
+      const dataAgama = await this.masterPrismaService.agama.findFirst({
+        where: { id_agama: calon.agama || undefined },
+      });
+
+      const dataPangkatGolongan =
+        await this.prismaService.ppnsPangkatGolongan.findFirst({
+          where: {
+            id: calon.pangkat_golongan
+              ? Number(calon.pangkat_golongan)
+              : undefined,
+          },
+        });
+
+      // ======= Build Step-by-Step Verification History =======
+      const steps: Array<any> = [];
+
+      // Step 1: Verifikasi Identitas
+      const verifDataStatus =
+        calon.data_verifikasi_admin?.verifikasi_data ?? null;
+      steps.push({
+        key: 'verifikasi_identitas',
+        name_step: 'Verifikasi Identitas',
+        status: verifDataStatus,
+        color: this.getColorForStatus(verifDataStatus),
+        at: calon.data_verifikasi_admin?.verifikator_at ?? null,
+        by: calon.data_verifikasi_admin?.verifikator_by ?? null,
+      });
+
+      // Step 2: Verifikasi Wilayah Kerja
+      const verifWilayahStatus =
+        calon.data_verifikasi_admin?.verifikasi_wilayah ?? null;
+      steps.push({
+        key: 'verifikasi_wilayah',
+        name_step: 'Verifikasi Wilayah Kerja',
+        status: verifWilayahStatus,
+        color: this.getColorForStatus(verifWilayahStatus),
+        at: calon.data_verifikasi_admin?.verifikator_at ?? null,
+        by: calon.data_verifikasi_admin?.verifikator_by ?? null,
+      });
+
+      // // Step 3: Verifikasi Administrasi A–F (contoh tambahan)
+      // const adminSections = ['a', 'b', 'c', 'd', 'e', 'f'];
+      // for (const s of adminSections) {
+      //   const statusKey = `status_${s}`;
+      //   const noteKey = `keterangan_${s}`;
+      //   const status = calon.data_verifikasi_admin?.[statusKey] ?? null;
+      //   const note = calon.data_verifikasi_admin?.[noteKey] ?? null;
+
+      //   steps.push({
+      //     key: `verifikasi_${s.toUpperCase()}`,
+      //     name_step: `Verifikasi Administrasi ${s.toUpperCase()}`,
+      //     status,
+      //     color: this.getColorForStatus(status),
+      //     at: calon.data_verifikasi_admin?.verifikator_at ?? null,
+      //     by: calon.data_verifikasi_admin?.verifikator_by ?? null,
+      //     note,
+      //   });
+      // }
+
+      // // Step 4: Final Verifikasi (Kesimpulan)
+      // const finalStatus = calon.data_verifikasi_admin?.status ?? null;
+      // steps.push({
+      //   key: 'final_verifikasi',
+      //   name_step: 'Kesimpulan Akhir',
+      //   status: finalStatus,
+      //   color: this.getColorForStatus(finalStatus),
+      //   at: calon.data_verifikasi_admin?.verifikator_at ?? null,
+      //   by: calon.data_verifikasi_admin?.verifikator_by ?? null,
+      //   note: calon.data_verifikasi_admin?.keterangan_verifikasi ?? null,
+      // });
+
+      // Tentukan current step terakhir (status bukan pending)
+      const currentStep =
+        steps
+          .slice()
+          .reverse()
+          .find((s) => {
+            const st = s.status ? String(s.status).toLowerCase() : '';
+            return st === 'sesuai' || st === 'tolak' || st === 'tidaksesuai';
+          }) ?? steps[steps.length - 1];
+
+      // ======= Push ke hasil akhir =======
+      mappedItem.push({
+        ...calon,
+        data_agama: dataAgama || null,
+        data_pangkat_golongan: dataPangkatGolongan || null,
+        status_kirim_verifikator: item[0]?.ppns_surat?.status ?? false,
+        step_history: steps,
+        current_step: currentStep,
+        ppns_wilayah_kerja: calon.ppns_wilayah_kerja.map((wilayah) => ({
+          id: wilayah.id || null,
+          id_ppns: wilayah.id_ppns || null,
+          id_surat: wilayah.id_surat || null,
+          uu_dikawal: [
+            wilayah.uu_dikawal_1,
+            wilayah.uu_dikawal_2,
+            wilayah.uu_dikawal_3,
+          ].filter((uu): uu is string => !!uu),
+        })),
+      });
+    }
+
+    return mappedItem;
+  }
+
+  private getColorForStatus(status?: string | null): string {
+    if (!status) return 'gray';
+    const lower = status.toLowerCase();
+    if (lower === 'sesuai') return 'green';
+    if (lower === 'tolak' || lower === 'tidaksesuai') return 'red';
+    return 'gray';
   }
 }

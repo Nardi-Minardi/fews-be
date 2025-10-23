@@ -97,7 +97,8 @@ export class SuratController {
     @Headers() headers: Record<string, any>,
     @Query('page') page = '1',
     @Query('limit') limit = '10',
-  ): Promise<any> {  // ✅ ubah ke any
+  ): Promise<any> {
+    // ✅ ubah ke any
     const authorization = headers['authorization'] || '';
     const userLogin = await getUserFromToken(authorization);
     if (!userLogin) {
@@ -119,6 +120,8 @@ export class SuratController {
       limitNum,
       offset,
     );
+
+    console.log('item calon ppns', item);
 
     if (!item || item.length === 0) {
       throw new BadRequestException('Ppns Surat not found');
@@ -213,6 +216,10 @@ export class SuratController {
         no_surat: {
           type: 'string',
           example: 'XYZ/123/PPNS/2023',
+        },
+        no_surat_verifikasi_sebelumnya: {
+          type: 'string',
+          example: 'SRT-Verifkasi-1',
         },
         perihal: {
           type: 'string',

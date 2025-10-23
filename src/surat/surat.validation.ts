@@ -36,7 +36,11 @@ export class SuratValidation {
   });
 
   static readonly CREATE_SURAT: ZodType = z.object({
-    no_surat: z.string().min(1, 'No Surat is required'),
+    no_surat: z
+      .string()
+      .min(1, 'No Surat is required')
+      .regex(/^[^\s]+$/, 'No Surat tidak boleh mengandung spasi'),
+    no_surat_verifikasi_sebelumnya: z.string().optional(),
     layanan: z.enum(
       [
         'verifikasi',

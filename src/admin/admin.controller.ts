@@ -11,6 +11,7 @@ import {
   Query,
   Param,
   HttpException,
+  BadRequestException,
 } from '@nestjs/common';
 import { Pagination, WebResponse } from 'src/common/web.response';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
@@ -19,10 +20,13 @@ import { FileFieldsInterceptor } from '@nestjs/platform-express';
 import { ApiBody, ApiConsumes, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { AdminService } from './admin.service';
 import { ListDaftarVerifikasi } from './dto/get.admin.dto';
-import { PrismaService } from 'src/common/prisma.service';
-import {status_enum, verifikasi_enum} from '.prisma/main-client';
+import { PrismaService, MasterPrismaService } from 'src/common/prisma.service';
+import { status_enum, verifikasi_enum } from '.prisma/main-client';
 import { AdminValidation } from './admin.validation';
 import { Http } from 'winston/lib/winston/transports';
+import { getUserFromToken } from 'src/common/utils/helper.util';
+import { SuratRepository } from 'src/surat/surat.repository';
+import { AdminRepository } from './admin.repository';
 
 @ApiTags('Admin')
 @Controller('/daftar-verifikasi')
@@ -31,6 +35,9 @@ export class AdminController {
     @Inject(WINSTON_MODULE_PROVIDER) private readonly logger: Logger,
     private adminService: AdminService,
     private prismaService: PrismaService,
+    private suratRepository: SuratRepository,
+    private masterPrismaService: MasterPrismaService,
+    private adminRepository: AdminRepository,
   ) {}
 
   @ApiOperation({ summary: 'Get Daftar Transaksi' })
@@ -124,43 +131,6 @@ export class AdminController {
     };
   }
 
-//   model PpnsVerifikasiData {
-//   id                     Int          @id @default(autoincrement())
-//   id_surat               Int?         @db.Integer
-//   id_data_ppns           Int?         @db.Integer
-//   verifikasi_data        verifikasi_enum?
-//   keterangan_data        String?      @db.Text
-//   verifikasi_wilayah     verifikasi_enum?
-//   keterangan_wilayah     String?      @db.Text
-//   status_a               verifikasi_enum?
-//   keterangan_a           String?      @db.Text
-//   status_b               verifikasi_enum?
-//   keterangan_b           String?      @db.Text
-//   status_c               verifikasi_enum?
-//   keterangan_c           String?      @db.Text
-//   status_d               verifikasi_enum?
-//   keterangan_d           String?      @db.Text
-//   status_e               verifikasi_enum?
-//   keterangan_e           String?      @db.Text
-//   status_f               verifikasi_enum?
-//   keterangan_f           String?      @db.Text
-//   keterangan_verifikator String?      @db.Text
-//   verifikator_by         Int?         @db.Integer
-//   verifikator_at         DateTime?    @db.Timestamp(6)
-//   status                 status_enum?
-
-//   @@map("tr_ppns_verifikasi_data")
-// }
-// enum status_enum {
-//   diterima @map("Diterima")
-//   dataBaru @map("Data Baru")
-// }
-
-// enum verifikasi_enum {
-//   sesuai @map("sesuai")
-//   tidakSesuai @map("tidak sesuai")
-//   tolak @map("tolak")
-// }
   //do verification
   @ApiOperation({ summary: 'Verifikasi Data PPNS' })
   @Post('/verifikasi-data')
@@ -169,11 +139,17 @@ export class AdminController {
     schema: {
       type: 'object',
       properties: {
-        id_surat: { type: 'number' , example: 1 },
-        id_data_ppns: { type: 'number' , example: 1 },
-        verifikasi_data: { type: 'string', enum: ['sesuai', 'tidak sesuai', 'tolak'] },
+        id_surat: { type: 'number', example: 1 },
+        id_data_ppns: { type: 'number', example: 1 },
+        verifikasi_data: {
+          type: 'string',
+          enum: ['sesuai', 'tidak sesuai', 'tolak'],
+        },
         keterangan_data: { type: 'string', nullable: true },
-        verifikasi_wilayah: { type: 'string', enum: ['sesuai', 'tidak sesuai', 'tolak'] },
+        verifikasi_wilayah: {
+          type: 'string',
+          enum: ['sesuai', 'tidak sesuai', 'tolak'],
+        },
         keterangan_wilayah: { type: 'string', nullable: true },
         status_a: { type: 'string', enum: ['sesuai', 'tidak sesuai', 'tolak'] },
         keterangan_a: { type: 'string', nullable: true },
@@ -216,7 +192,10 @@ export class AdminController {
     });
 
     if (!suratData) {
-      throw new HttpException(`Surat dengan ID ${body.id_surat} tidak ditemukan`, 404);
+      throw new HttpException(
+        `Surat dengan ID ${body.id_surat} tidak ditemukan`,
+        404,
+      );
     }
 
     //cek calo ppns
@@ -227,7 +206,24 @@ export class AdminController {
     });
 
     if (!calonPpnsData) {
-      throw new HttpException(`Calon PPNS dengan ID ${body.id_data_ppns} tidak ditemukan`, 404);
+      throw new HttpException(
+        `Calon PPNS dengan ID ${body.id_data_ppns} tidak ditemukan`,
+        404,
+      );
+    }
+
+    //jika sudah ada data verifikasi sebelumnya
+    const existingVerif = await this.prismaService.ppnsVerifikasiData.findFirst({
+      where: {
+        id_surat: body.id_surat,
+        id_data_ppns: body.id_data_ppns,
+      },
+    });
+    if (existingVerif) {
+      throw new HttpException(
+        `Data verifikasi untuk surat ID ${body.id_surat} dan calon PPNS ID ${body.id_data_ppns} sudah ada/sudah diverifikasi`,
+        400,
+      );
     }
 
     const result = await this.prismaService.ppnsVerifikasiData.create({
@@ -244,11 +240,11 @@ export class AdminController {
         keterangan_b: body.keterangan_b,
         status_c: body.status_c,
         keterangan_c: body.keterangan_c,
-        status_d: body.status_d,  
+        status_d: body.status_d,
         keterangan_d: body.keterangan_d,
         status_e: body.status_e,
         keterangan_e: body.keterangan_e,
-        status_f: body.status_f,  
+        status_f: body.status_f,
         keterangan_f: body.keterangan_f,
         keterangan_verifikasi: body.keterangan_verifikasi,
         verifikator_by: body.verifikator_by,
@@ -261,6 +257,52 @@ export class AdminController {
       statusCode: 200,
       message: 'Verifikasi berhasil disimpan',
       data: result,
+    };
+  }
+
+  @Get('/calon-ppns/:id_surat')
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Get Detail Transasi calon ppns by id surat' })
+  async detailCalonPpns(
+    @Param('id_surat') id_surat: string,
+    @Headers() headers: Record<string, any>,
+    @Query('page') page = '1',
+    @Query('limit') limit = '10',
+  ): Promise<any> {
+    // ✅ ubah ke any
+    const authorization = headers['authorization'] || '';
+    const userLogin = await getUserFromToken(authorization);
+    if (!userLogin) {
+      throw new BadRequestException('Authorization is missing');
+    }
+
+    const pageNum = Number(page);
+    const limitNum = Number(limit);
+    const offset = (pageNum - 1) * limitNum;
+
+    // Ambil total data dulu
+    const totalData = await this.adminRepository.countPpnsDataPnsByIdSurat(
+      Number(id_surat),
+    );
+
+    // Ambil data berdasarkan pagination
+    const item = await this.adminRepository.findPpnsDataPnsByIdSurat(
+      Number(id_surat),
+      limitNum,
+      offset,
+    );
+
+    const totalPage = Math.ceil(totalData / limitNum);
+
+    return {
+      statusCode: 200,
+      message: 'Success',
+      data: item,
+      pagination: {
+        currentPage: pageNum,
+        totalPage,
+        totalData,
+      },
     };
   }
 }

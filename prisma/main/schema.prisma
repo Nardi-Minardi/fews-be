@@ -90,11 +90,12 @@ model PpnsSurat {
   verifikator_at      DateTime? @db.Timestamp(6)
 
   // Relasi
-  ppns_kementerian PpnsKementerian? @relation("PpnsKementerianToSurat", fields: [lembaga_kementerian], references: [id])
-  ppns_instansi    PpnsInstansi?    @relation("PpnsInstansiToSurat", fields: [instansi], references: [id])
-  ppns_layanan     PpnsLayanan?     @relation("PpnsSuratToLayanan", fields: [id_layanan], references: [id])
-  ppns_upload      PpnsUpload[]     @relation("PpnsUploadToSurat")
-  ppns_data_pns    PpnsDataPns[]    @relation("PpnsDataToSurat")
+  ppns_kementerian      PpnsKementerian?    @relation("PpnsKementerianToSurat", fields: [lembaga_kementerian], references: [id])
+  ppns_instansi         PpnsInstansi?       @relation("PpnsInstansiToSurat", fields: [instansi], references: [id])
+  ppns_layanan          PpnsLayanan?        @relation("PpnsSuratToLayanan", fields: [id_layanan], references: [id])
+  ppns_upload           PpnsUpload[]        @relation("PpnsUploadToSurat")
+  ppns_data_pns         PpnsDataPns[]       @relation("PpnsDataToSurat")
+  data_verifikasi_admin PpnsVerifikasiData? @relation("PpnsSuratToVerifikasiData")
 
   @@map("tr_ppns_surat")
 }
@@ -175,6 +176,7 @@ model PpnsDataPns {
   ppns_pemberhentian_undur_diri PpnsPemberhentianUndurDiri? @relation("PpnsDataPnsToPemberhentianUndurDiri")
   ppns_pemberhentian_pensiun    PpnsPemberhentianPensiun?   @relation("PpnsDataPnsToPemberhentianPensiun")
   ppns_pemberhentian_nto        PpnsPemberhentianNto?       @relation("PpnsDataPnsToPemberhentianNto")
+  data_verifikasi_admin         PpnsVerifikasiData?         @relation("PpnsDataPnsToVerifikasiData")
 
   @@map("tr_data_ppns")
 }
@@ -424,29 +426,32 @@ model PpnsPemberhentianNto {
 
 //buat admin
 model PpnsVerifikasiData {
-  id                     Int          @id @default(autoincrement())
-  id_surat               Int?         @db.Integer
-  id_data_ppns           Int?         @db.Integer
-  verifikasi_data        verifikasi_enum?
-  keterangan_data        String?      @db.Text
-  verifikasi_wilayah     verifikasi_enum?
-  keterangan_wilayah     String?      @db.Text
-  status_a               verifikasi_enum?
-  keterangan_a           String?      @db.Text
-  status_b               verifikasi_enum?
-  keterangan_b           String?      @db.Text
-  status_c               verifikasi_enum?
-  keterangan_c           String?      @db.Text
-  status_d               verifikasi_enum?
-  keterangan_d           String?      @db.Text
-  status_e               verifikasi_enum?
-  keterangan_e           String?      @db.Text
-  status_f               verifikasi_enum?
-  keterangan_f           String?      @db.Text
-  keterangan_verifikasi String?      @db.Text
-  verifikator_by         Int?         @db.Integer
-  verifikator_at         DateTime?    @db.Timestamp(6)
-  status                 status_enum?
+  id                    Int              @id @default(autoincrement())
+  id_surat              Int?             @unique @db.Integer
+  id_data_ppns          Int?             @unique @db.Integer
+  verifikasi_data       verifikasi_enum?
+  keterangan_data       String?          @db.Text
+  verifikasi_wilayah    verifikasi_enum?
+  keterangan_wilayah    String?          @db.Text
+  status_a              verifikasi_enum?
+  keterangan_a          String?          @db.Text
+  status_b              verifikasi_enum?
+  keterangan_b          String?          @db.Text
+  status_c              verifikasi_enum?
+  keterangan_c          String?          @db.Text
+  status_d              verifikasi_enum?
+  keterangan_d          String?          @db.Text
+  status_e              verifikasi_enum?
+  keterangan_e          String?          @db.Text
+  status_f              verifikasi_enum?
+  keterangan_f          String?          @db.Text
+  keterangan_verifikasi String?          @db.Text
+  verifikator_by        Int?             @db.Integer
+  verifikator_at        DateTime?        @db.Timestamp(6)
+  status                status_enum?
+
+  ppns_surat    PpnsSurat?   @relation("PpnsSuratToVerifikasiData", fields: [id_surat], references: [id])
+  ppns_data_pns PpnsDataPns? @relation("PpnsDataPnsToVerifikasiData", fields: [id_data_ppns], references: [id])
 
   @@map("tr_ppns_verifikasi_data")
 }
@@ -457,9 +462,9 @@ enum status_enum {
 }
 
 enum verifikasi_enum {
-  sesuai @map("sesuai")
+  sesuai      @map("sesuai")
   tidakSesuai @map("tidak sesuai")
-  tolak @map("tolak")
+  tolak       @map("tolak")
 }
 
 enum status_upload {

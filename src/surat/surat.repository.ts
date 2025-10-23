@@ -793,6 +793,12 @@ export class SuratRepository {
     });
   }
 
+  async findPpnSuratByNoSurat(no_surat: string) {
+    return this.prismaService.ppnsSurat.findFirst({
+      where: { no_surat },
+    });
+  }
+
   async findPpnsDataPnsByNip(nip: string) {
     return this.prismaService.ppnsDataPns.findFirst({
       where: { nip },
@@ -905,7 +911,7 @@ export class SuratRepository {
   ) {
     // ✅ 1. Pastikan id_surat valid
     const surat = await this.prismaService.ppnsSurat.findUnique({
-      where: { id: idTransaksi },
+      where: { id: Number(idTransaksi) },
     });
 
     if (!surat) {
@@ -924,7 +930,7 @@ export class SuratRepository {
       // ✅ 3. Cari existing berdasarkan id_surat (idTransaksi) dan file_type
       const existing = await this.prismaService.ppnsUpload.findFirst({
         where: {
-          id_surat: idTransaksi,
+          id_surat: Number(idTransaksi),
           file_type: d.file_type,
         },
       });
@@ -934,7 +940,7 @@ export class SuratRepository {
         await this.prismaService.ppnsUpload.update({
           where: { id: existing.id },
           data: {
-            id_surat: idTransaksi, // selalu pakai idTransaksi
+            id_surat: Number(idTransaksi), // selalu pakai idTransaksi
             id_data_ppns: d.id_ppns ?? existing.id_data_ppns,
             id_file_type: d.id_file_type
               ? Number(d.id_file_type)
@@ -954,7 +960,7 @@ export class SuratRepository {
         // ✅ 5. Insert baru
         await this.prismaService.ppnsUpload.create({
           data: {
-            id_surat: idTransaksi, // selalu valid karena kita sudah cek di atas
+            id_surat: Number(idTransaksi), // selalu valid karena kita sudah cek di atas
             id_data_ppns: d.id_ppns,
             id_file_type: d.id_file_type,
             file_type: this.cleanString(d.file_type) ?? '',

@@ -29,6 +29,7 @@ import {
 } from './pengangkatan.repository';
 import { PengangkatanValidation } from './pengangkatan.validation';
 import { LayananRepository } from 'src/layanan/layanan.repository';
+import { PrismaService } from 'src/common/prisma.service';
 
 @Injectable()
 export class PengangkatanService {
@@ -41,6 +42,7 @@ export class PengangkatanService {
     private suratRepository: SuratRepository,
     private layananRepository: LayananRepository,
     private s3Service: S3Service,
+    private prismaService: PrismaService,
   ) {}
 
   async storePengangkatanPpns(
@@ -73,8 +75,10 @@ export class PengangkatanService {
     }
 
     //cek data pppns
-    const existingPpnsDataPns = await this.suratRepository.findPpnsDataPnsById(
-      Number(createRequest.id_data_ppns),
+    const existingPpnsDataPns = await this.prismaService.ppnsDataPns.findFirst(
+      {
+        where: { id_surat: Number(createRequest.id_surat) },
+      },
     );
 
     if (!existingPpnsDataPns) {
@@ -83,9 +87,21 @@ export class PengangkatanService {
       );
     }
 
+    //finde surat by id_surat
+    const existingSurat = await this.suratRepository.findPpnSuratById(
+      Number(createRequest.id_surat),
+    );
+
+    if (!existingSurat) {
+      throw new HttpException(
+        `Data Ppns surat dengan ID ${createRequest.id_surat} tidak ditemukan`,
+        400,
+      );
+    }
+
     const createData = {
-      id_data_ppns: Number(createRequest.id_data_ppns),
-      id_surat: existingPpnsDataPns.id_surat,
+      id_data_ppns: existingPpnsDataPns.id,
+      id_surat: createRequest.id_surat ? Number(createRequest.id_surat) : null,
       nama_sekolah: createRequest.nama_sekolah,
       no_ijazah: createRequest.no_ijazah,
       tgl_ijazah: createRequest.tgl_ijazah
@@ -133,10 +149,24 @@ export class PengangkatanService {
     };
 
     //cek data pengangkatan
-    const existingPpnsPengangkatan =
-      await this.pengangkatanRepository.findPpnsPengangkatanById(
-        Number(createRequest.id_data_ppns),
+    const existingPpnsData = await this.prismaService.ppnsDataPns.findFirst({
+      where: { id_surat: Number(createRequest.id_surat) },
+    });
+
+    console.log('existingPpnsData', existingPpnsData);
+
+    if (!existingPpnsData) {
+      throw new NotFoundException(
+        `Data calon ppns dengan ID surat ${createRequest.id_surat} tidak ditemukan`,
       );
+    }
+
+    const existingPpnsPengangkatan =
+      await this.pengangkatanRepository.findPpnsPengangkatanByIdSurat(
+        Number(createRequest.id_surat),
+      );
+
+    console.log('existingPpnsPengangkatan', existingPpnsPengangkatan);
 
     let result;
 
@@ -147,12 +177,12 @@ export class PengangkatanService {
         createData as unknown as PpnsPengangkatanUpdateInputWithExtra,
       );
     }
-    // else {
-    //   // create data calon ppns
-    //   result = await this.pengangkatanRepository.savePpnsPengangkatan(
-    //     createData as unknown as PpnsPengangkatanCreateInputWithExtra,
-    //   );
-    // }
+    else {
+      // create data calon ppns
+      result = await this.pengangkatanRepository.savePpnsPengangkatan(
+        createData as unknown as PpnsPengangkatanCreateInputWithExtra,
+      );
+    }
 
     const dataUploadDB: PpnsUploadDto[] = [];
 
@@ -167,7 +197,7 @@ export class PengangkatanService {
         );
       const existingPolisi = await this.fileUploadRepository.findFilePpnsUpload(
         'dokumen_tanda_terima_polisi',
-        Number(existingPpnsDataPns.id_surat),
+        Number(createRequest.id_surat),
         Number(createRequest.id_data_ppns),
       );
 
@@ -180,7 +210,7 @@ export class PengangkatanService {
       const upload = await this.fileUploadService.handleUpload(
         request.dok_tanda_terima_polisi,
         'dokumen_tanda_terima_polisi',
-        existingPpnsDataPns.id_surat ?? 0,
+        createRequest.id_surat ?? 0,
         createData.id_data_ppns,
         'pengangkatan',
         masterFile ? masterFile.id : null,
@@ -200,7 +230,7 @@ export class PengangkatanService {
       const existingKejaksaan =
         await this.fileUploadRepository.findFilePpnsUpload(
           'dokumen_tanda_terima_kejaksaan_agung',
-          Number(existingPpnsDataPns.id_surat),
+          Number(createRequest.id_surat),
           Number(createRequest.id_data_ppns),
         );
       await Promise.all(
@@ -211,7 +241,7 @@ export class PengangkatanService {
       const upload = await this.fileUploadService.handleUpload(
         request.dok_tanda_terima_kejaksaan_agung,
         'dokumen_tanda_terima_kejaksaan_agung',
-        existingPpnsDataPns.id_surat ?? 0,
+        createRequest.id_surat ?? 0,
         createData.id_data_ppns,
         'pengangkatan',
         masterFile ? masterFile.id : null,
@@ -224,11 +254,11 @@ export class PengangkatanService {
     // simpan file upload ke DB
     if (dataUploadDB.length > 0) {
       await this.suratRepository.createOrUpdatePpnsUpload(
-        existingPpnsDataPns.id_surat ?? 0,
+        createRequest.id_surat ?? 0,
         dataUploadDB.map((d) => ({
           ...d,
-          id_surat: existingPpnsDataPns.id_surat ?? 0,
-          id_ppns: d.id_ppns ?? 0, // fallback to 0 if null
+          id_surat: createRequest.id_surat ?? 0,
+          id_ppns: existingPpnsDataPns.id,
           id_file_type: d.master_file_id ?? null,
         })),
       );
@@ -244,7 +274,7 @@ export class PengangkatanService {
         : null,
       tahun_lulus: createRequest.tahun_lulus,
     });
-    await this.suratRepository.updatePpnsDataPns(existingPpnsDataPns.id, {
+    await this.suratRepository.updatePpnsDataPns(existingPpnsData.id, {
       nama_sekolah: createRequest.nama_sekolah,
       gelar_terakhir: createRequest.gelar_terakhir,
       no_ijazah: createRequest.no_ijazah,
@@ -258,14 +288,14 @@ export class PengangkatanService {
     const dok_tanda_terima_polisi =
       await this.fileUploadRepository.findFilePpnsUpload(
         'dokumen_tanda_terima_polisi',
-        Number(existingPpnsDataPns.id_surat),
-        Number(createRequest.id_data_ppns),
+        Number(createRequest.id_surat),
+        existingPpnsDataPns.id,
       );
     const dok_tanda_terima_kejaksaan_agung =
       await this.fileUploadRepository.findFilePpnsUpload(
         'dokumen_tanda_terima_kejaksaan_agung',
-        Number(existingPpnsDataPns.id_surat),
-        Number(createRequest.id_data_ppns),
+        Number(createRequest.id_surat),
+        existingPpnsDataPns.id,
       );
 
     // gabungkan uploads ke response
@@ -286,7 +316,6 @@ export class PengangkatanService {
     },
     authorization?: string,
   ): Promise<CreateResponsePermohonanVerifikasiUploadDokumenPpnsDto> {
-   
     const createRequest = this.validationService.validate(
       PengangkatanValidation.CREATE_PENGANGKATAN_UPLOAD,
       request,

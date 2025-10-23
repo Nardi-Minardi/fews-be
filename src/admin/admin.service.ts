@@ -110,6 +110,7 @@ export class AdminService {
         ppns_instansi: item.ppns_instansi ? item.ppns_instansi : null,
         ppns_kementerian: item.ppns_kementerian ? item.ppns_kementerian : null,
         ppns_layanan: item.ppns_layanan ? item.ppns_layanan : null,
+        count_calon_ppns: item.count_calon_ppns ?? 0,
       })),
       pagination,
     };

@@ -41,7 +41,11 @@ export class PengangkatanController {
     schema: {
       type: 'object',
       properties: {
-        id_data_ppns: {
+          // id_data_ppns: {
+          //   type: 'number',
+          //   example: 12345,
+          // },
+        id_surat: {
           type: 'number',
           example: 12345,
         },
@@ -84,7 +88,7 @@ export class PengangkatanController {
           type: 'string',
           example: 'true',
         },
-        jabatan : {
+        jabatan: {
           type: 'string',
           example: 'Penyidik',
         },

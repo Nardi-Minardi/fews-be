@@ -70,6 +70,16 @@ export class SuratService {
       request,
     );
 
+    //cek nomor usrat sudah ada
+    const existingSurat = await this.suratRepository.findPpnSuratByNoSurat(
+      createRequest.no_surat,
+    );
+    if (existingSurat) {
+      throw new BadRequestException(
+        `Surat dengan nomor '${createRequest.no_surat}' sudah ada`,
+      );
+    }
+
     //get user login
     const userLogin = await getUserFromToken(authorization);
     if (!userLogin) {
@@ -80,7 +90,51 @@ export class SuratService {
     let dataLayanan: any;
     let namePrefixUpload: string;
 
-    switch (createRequest.layanan) {
+    //cek calon ppns sudah ada di nomor surat sebelumnya
+    let existingSuratSebelumnya: any = null;
+    let existingPpnsDataPns: Prisma.PpnsDataPnsGetPayload<{
+      include: {
+        ppns_upload: true;
+        ppns_wilayah_kerja: true;
+      };
+    }>[] = [];
+    if (createRequest.no_surat_verifikasi_sebelumnya) {
+      existingSuratSebelumnya = await this.prismaService.ppnsSurat.findFirst({
+        where: {
+          no_surat: createRequest.no_surat_verifikasi_sebelumnya,
+        },
+      });
+      if (!existingSuratSebelumnya) {
+        throw new NotFoundException(
+          `Surat dengan nomor sebelumnya '${createRequest.no_surat_verifikasi_sebelumnya}' tidak ditemukan`,
+        );
+      }
+
+      // Jika nomor surat sebelumnya ada, ambil data PPNS sebelumnya yang verifikasi
+      if (existingSuratSebelumnya) {
+        existingPpnsDataPns = await this.prismaService.ppnsDataPns.findMany({
+          where: {
+            id_surat: existingSuratSebelumnya.id,
+          },
+          include: {
+            ppns_surat: {
+              where: {
+                id: existingSuratSebelumnya.id,
+                id_layanan: 1, // layanan verifikasi
+              },
+            },
+            ppns_upload: true,
+            ppns_wilayah_kerja: true,
+          },
+        });
+        console.log(
+          'no surat sebelumnya ada layanannya adalah verifikasi, existingPpnsDataPns',
+          existingPpnsDataPns,
+        );
+      }
+    }
+
+    switch (createRequest.layanan.toLowerCase()) {
       case 'verifikasi':
         dataLayanan =
           await this.layananRepository.findLayananByNama('verifikasi');
@@ -91,17 +145,20 @@ export class SuratService {
       case 'pengangkatan':
         dataLayanan =
           await this.layananRepository.findLayananByNama('pengangkatan');
+
         namePrefixUpload = 'pengangkatan';
         break;
 
       case 'pelantikan':
         dataLayanan =
           await this.layananRepository.findLayananByNama('pelantikan');
+
         namePrefixUpload = 'pelantikan';
         break;
 
       case 'mutasi':
         dataLayanan = await this.layananRepository.findLayananByNama('mutasi');
+
         namePrefixUpload = 'mutasi';
         break;
 
@@ -109,12 +166,14 @@ export class SuratService {
         dataLayanan = await this.layananRepository.findLayananByNama(
           'pengangkatan kembali',
         );
+
         namePrefixUpload = 'pengangkatan-kembali';
         break;
 
       case 'perpanjang ktp':
         dataLayanan =
           await this.layananRepository.findLayananByNama('perpanjang ktp');
+
         namePrefixUpload = 'perpanjang-ktp';
         break;
 
@@ -128,6 +187,7 @@ export class SuratService {
       case 'undur diri':
         dataLayanan =
           await this.layananRepository.findLayananByNama('undur diri');
+
         namePrefixUpload = 'undur-diri';
         break;
 
@@ -197,7 +257,7 @@ export class SuratService {
 
       const masterFile =
         await this.fileUploadRepository.getMasterPpnsUploadByIdByName(
-           'dok_surat_pernyataan',
+          'dok_surat_pernyataan',
         );
 
       const existing = await this.fileUploadRepository.findFilePpnsUpload(
@@ -244,6 +304,240 @@ export class SuratService {
       Number(result.id),
       Number(result.id_user),
     );
+
+    //insert or update calon ppns dari existingPpnsDataPns
+    switch (createRequest.layanan.toLowerCase()) {
+      case 'verifikasi':
+        dataLayanan =
+          await this.layananRepository.findLayananByNama('verifikasi');
+
+        break;
+
+      case 'pengangkatan':
+        dataLayanan =
+          await this.layananRepository.findLayananByNama('pengangkatan');
+
+        for (const ppnsDataPns of existingPpnsDataPns) {
+          // const createPengangkatan = {
+          //   id_surat: result.id,
+          //   id_data_ppns: ppnsDataPns.id,
+          //   nama_sekolah: null,
+          //   no_ijazah: null,
+          //   tgl_ijazah: null,
+          //   tahun_lulus: null,
+          //   no_sttpl: null,
+          //   tgl_sttpl: null,
+          //   tgl_verifikasi: null,
+          //   cek_surat_polisi: false,
+          //   no_surat_polisi: null,
+          //   tgl_surat_polisi: null,
+          //   perihal_surat_polisi: null,
+          //   cek_surat_kejaksaan_agung: false,
+          //   no_surat_kejaksaan_agung: null,
+          //   tgl_surat_kejaksaan_agung: null,
+          //   perihal_surat_kejaksaan_agung: null,
+          //   teknis_operasional_penegak_hukum: false,
+          //   jabatan: null,
+          //   provinsi_penempatan: null,
+          //   kabupaten_penempatan: null,
+          //   unit_kerja: null,
+          //   created_at: new Date(),
+          //   created_by: userLogin.user_id,
+          // };
+          // await this.prismaService.ppnsPengangkatan.create({
+          //   data: createPengangkatan,
+          // });
+
+          const createCalonPpns = {
+            id_surat: result.id,
+            nama: ppnsDataPns.nama,
+            nip: ppnsDataPns.nip,
+            nama_gelar: ppnsDataPns.nama_gelar,
+            jabatan: ppnsDataPns.jabatan,
+            pangkat_golongan: ppnsDataPns.pangkat_golongan,
+            jenis_kelamin: ppnsDataPns.jenis_kelamin,
+            agama: ppnsDataPns.agama,
+            nama_sekolah: ppnsDataPns.nama_sekolah,
+            gelar_terakhir: ppnsDataPns.gelar_terakhir,
+            no_ijazah: ppnsDataPns.no_ijazah,
+            tgl_ijazah: ppnsDataPns.tgl_ijazah,
+            tahun_lulus: ppnsDataPns.tahun_lulus,
+            is_ppns: ppnsDataPns.is_ppns,
+            nomor_hp: ppnsDataPns.nomor_hp,
+            email: ppnsDataPns.email,
+            gelar_depan: ppnsDataPns.gelar_depan,
+            id_lama: ppnsDataPns.id_lama,
+          };
+          const newCalonPpns = await this.prismaService.ppnsDataPns.create({
+            data: createCalonPpns,
+            include: {
+              ppns_upload: true,
+              ppns_wilayah_kerja: true,
+            },
+          });
+
+          //copy wilayah kerja
+          for (const wilayahKerja of ppnsDataPns.ppns_wilayah_kerja) {
+            await this.prismaService.wilayahKerja.create({
+              data: {
+                id_layanan: wilayahKerja.id_layanan,
+                id_ppns: newCalonPpns.id,
+                id_surat: result.id,
+                penempatan_baru: wilayahKerja.penempatan_baru,
+                uu_dikawal_1: wilayahKerja.uu_dikawal_1,
+                uu_dikawal_2: wilayahKerja.uu_dikawal_2,
+                uu_dikawal_3: wilayahKerja.uu_dikawal_3,
+              },
+            });
+          }
+          //copy upload
+          for (const upload of ppnsDataPns.ppns_upload) {
+            await this.prismaService.ppnsUpload.create({
+              data: {
+                id_surat: result.id,
+                id_data_ppns: newCalonPpns.id,
+                id_file_type: upload.id_file_type,
+                file_type: upload.file_type,
+                original_name: upload.original_name,
+                status: upload.status,
+                keterangan: upload.keterangan,
+                s3_key: upload.s3_key,
+                mime_type: upload.mime_type,
+                file_size: upload.file_size,
+                uploaded_at: upload.uploaded_at,
+                verifikator_by: upload.verifikator_by,
+                verifikator_at: upload.verifikator_at,
+              },
+            });
+          }
+        }
+        break;
+
+      case 'pelantikan':
+        dataLayanan =
+          await this.layananRepository.findLayananByNama('pelantikan');
+
+        for (const ppnsDataPns of existingPpnsDataPns) {
+          const createPelantikan = {
+            id_surat: result.id,
+            id_data_ppns: ppnsDataPns.id,
+            no_sk_induk: null,
+            tgl_sk_induk: null,
+            provinsi_penempatan: null,
+            kabupaten_penempatan: null,
+            unit_kerja: null,
+            created_at: new Date(),
+            created_by: userLogin.user_id,
+          };
+          await this.prismaService.ppnsPelantikan.create({
+            data: createPelantikan,
+          });
+
+          const createCalonPpns = {
+            id_surat: result.id,
+            nama: ppnsDataPns.nama,
+            nip: ppnsDataPns.nip,
+            nama_gelar: ppnsDataPns.nama_gelar,
+            jabatan: ppnsDataPns.jabatan,
+            pangkat_golongan: ppnsDataPns.pangkat_golongan,
+            jenis_kelamin: ppnsDataPns.jenis_kelamin,
+            agama: ppnsDataPns.agama,
+            nama_sekolah: ppnsDataPns.nama_sekolah,
+            gelar_terakhir: ppnsDataPns.gelar_terakhir,
+            no_ijazah: ppnsDataPns.no_ijazah,
+            tgl_ijazah: ppnsDataPns.tgl_ijazah,
+            tahun_lulus: ppnsDataPns.tahun_lulus,
+            is_ppns: ppnsDataPns.is_ppns,
+            nomor_hp: ppnsDataPns.nomor_hp,
+            email: ppnsDataPns.email,
+            gelar_depan: ppnsDataPns.gelar_depan,
+            id_lama: ppnsDataPns.id_lama,
+          };
+          const newCalonPpns = await this.prismaService.ppnsDataPns.create({
+            data: createCalonPpns,
+            include: {
+              ppns_upload: true,
+              ppns_wilayah_kerja: true,
+            },
+          });
+
+          //copy wilayah kerja
+          for (const wilayahKerja of ppnsDataPns.ppns_wilayah_kerja) {
+            await this.prismaService.wilayahKerja.create({
+              data: {
+                id_layanan: wilayahKerja.id_layanan,
+                id_ppns: newCalonPpns.id,
+                id_surat: result.id,
+                penempatan_baru: wilayahKerja.penempatan_baru,
+                uu_dikawal_1: wilayahKerja.uu_dikawal_1,
+                uu_dikawal_2: wilayahKerja.uu_dikawal_2,
+                uu_dikawal_3: wilayahKerja.uu_dikawal_3,
+              },
+            });
+          }
+          //copy upload
+          for (const upload of ppnsDataPns.ppns_upload) {
+            await this.prismaService.ppnsUpload.create({
+              data: {
+                id_surat: result.id,
+                id_data_ppns: newCalonPpns.id,
+                id_file_type: upload.id_file_type,
+                file_type: upload.file_type,
+                original_name: upload.original_name,
+                status: upload.status,
+                keterangan: upload.keterangan,
+                s3_key: upload.s3_key,
+                mime_type: upload.mime_type,
+                file_size: upload.file_size,
+                uploaded_at: upload.uploaded_at,
+                verifikator_by: upload.verifikator_by,
+                verifikator_at: upload.verifikator_at,
+              },
+            });
+          }
+        }
+        break;
+
+      case 'mutasi':
+        dataLayanan = await this.layananRepository.findLayananByNama('mutasi');
+        break;
+
+      case 'pengangkatan kembali':
+        dataLayanan = await this.layananRepository.findLayananByNama(
+          'pengangkatan kembali',
+        );
+        break;
+
+      case 'perpanjang ktp':
+        dataLayanan =
+          await this.layananRepository.findLayananByNama('perpanjang ktp');
+        break;
+
+      case 'penerbitan kembali ktp':
+        dataLayanan = await this.layananRepository.findLayananByNama(
+          'penerbitan kembali ktp',
+        );
+        break;
+
+      case 'undur diri':
+        dataLayanan =
+          await this.layananRepository.findLayananByNama('undur diri');
+        break;
+
+      case 'pensiun':
+        dataLayanan = await this.layananRepository.findLayananByNama('pensiun');
+        break;
+
+      case 'pemberhentian NTO':
+        dataLayanan =
+          await this.layananRepository.findLayananByNama('pemberhentian NTO');
+        break;
+
+      default:
+        throw new BadRequestException(
+          `Layanan '${createRequest.layanan}' tidak dikenali`,
+        );
+    }
 
     // mapping hasil ke DTO (pastikan tanggal diubah ke ISO string)
     const response: CreateResponseSuratDto = {
@@ -350,7 +644,7 @@ export class SuratService {
         key: 'ppns_verifikasi_ppns',
         message: 'data verifikasi ppns',
       },
-       pengangkatan: {
+      pengangkatan: {
         key: 'ppns_pengangkatan',
         message: 'data pengangkatan',
       },
@@ -433,10 +727,7 @@ export class SuratService {
     request: any,
     authorization?: string,
   ): Promise<CreateResponsePpnsDataPnsDto> {
-    this.logger.debug(
-      'Request Creating create calon pemohon',
-      { request },
-    );
+    this.logger.debug('Request Creating create calon pemohon', { request });
 
     // Handle if body is empty
     if (!request || Object.keys(request).length === 0) {
@@ -589,8 +880,10 @@ export class SuratService {
       ),
       unit_kerja: createRequest.lokasi_penempatan.unit_kerja,
       created_by: userLogin.user_id,
-      kartu_tanda_penyidik_no_ktp: createRequest.kartu_tanda_penyidik?.no_ktp ?? null,
-      kartu_tanda_penyidik_tgl_ktp: createRequest.kartu_tanda_penyidik?.tgl_ktp ?? null,
+      kartu_tanda_penyidik_no_ktp:
+        createRequest.kartu_tanda_penyidik?.no_ktp ?? null,
+      kartu_tanda_penyidik_tgl_ktp:
+        createRequest.kartu_tanda_penyidik?.tgl_ktp ?? null,
       karta_tanda_penyidik_tgl_berlaku_ktp:
         createRequest.kartu_tanda_penyidik?.tgl_berlaku_ktp ?? null,
     });
