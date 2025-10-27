@@ -218,73 +218,106 @@ export class AdminRepository {
           },
         });
 
+      // Default step_history dan current_step
+      let steps: Array<any> = [];
+      let currentStep: any = null;
+
       // ======= Build Step-by-Step Verification History =======
-      const steps: Array<any> = [];
+      if (calon.data_verifikasi_admin) {
+        // Step 1: Verifikasi Identitas
+        const verifDataStatus =
+          calon.data_verifikasi_admin?.verifikasi_data ?? null;
+        steps.push({
+          key: 'verifikasi_identitas',
+          name_step: 'Verifikasi Identitas',
+          status: verifDataStatus,
+          color: this.getColorForStatus(verifDataStatus),
+          at: calon.data_verifikasi_admin?.verifikator_at ?? null,
+          by: calon.data_verifikasi_admin?.verifikator_by ?? null,
+        });
 
-      // Step 1: Verifikasi Identitas
-      const verifDataStatus =
-        calon.data_verifikasi_admin?.verifikasi_data ?? null;
-      steps.push({
-        key: 'verifikasi_identitas',
-        name_step: 'Verifikasi Identitas',
-        status: verifDataStatus,
-        color: this.getColorForStatus(verifDataStatus),
-        at: calon.data_verifikasi_admin?.verifikator_at ?? null,
-        by: calon.data_verifikasi_admin?.verifikator_by ?? null,
-      });
+        // Step 2: Verifikasi Wilayah Kerja
+        const verifWilayahStatus =
+          calon.data_verifikasi_admin?.verifikasi_wilayah ?? null;
+        steps.push({
+          key: 'verifikasi_wilayah',
+          name_step: 'Verifikasi Wilayah Kerja',
+          status: verifWilayahStatus,
+          color: this.getColorForStatus(verifWilayahStatus),
+          at: calon.data_verifikasi_admin?.verifikator_at ?? null,
+          by: calon.data_verifikasi_admin?.verifikator_by ?? null,
+        });
 
-      // Step 2: Verifikasi Wilayah Kerja
-      const verifWilayahStatus =
-        calon.data_verifikasi_admin?.verifikasi_wilayah ?? null;
-      steps.push({
-        key: 'verifikasi_wilayah',
-        name_step: 'Verifikasi Wilayah Kerja',
-        status: verifWilayahStatus,
-        color: this.getColorForStatus(verifWilayahStatus),
-        at: calon.data_verifikasi_admin?.verifikator_at ?? null,
-        by: calon.data_verifikasi_admin?.verifikator_by ?? null,
-      });
+        // Step 3: Verifikasi Masa Kerja
+        const verifMasaKerjaStatus =
+          calon.data_verifikasi_admin?.verifikasi_masa_kerja ?? null;
+        steps.push({
+          key: 'verifikasi_masa_kerja',
+          name_step: 'Verifikasi Masa Kerja',
+          status: verifMasaKerjaStatus,
+          color: this.getColorForStatus(verifMasaKerjaStatus),
+          at: calon.data_verifikasi_admin?.verifikator_at ?? null,
+          by: calon.data_verifikasi_admin?.verifikator_by ?? null,
+        });
 
-      // // Step 3: Verifikasi Administrasi A–F (contoh tambahan)
-      // const adminSections = ['a', 'b', 'c', 'd', 'e', 'f'];
-      // for (const s of adminSections) {
-      //   const statusKey = `status_${s}`;
-      //   const noteKey = `keterangan_${s}`;
-      //   const status = calon.data_verifikasi_admin?.[statusKey] ?? null;
-      //   const note = calon.data_verifikasi_admin?.[noteKey] ?? null;
+        // Step 4: Verifikasi Pendidikan Terakhir
+        const verifPendidikanTerakhirStatus =
+          calon.data_verifikasi_admin?.verifikasi_pendidikan_terakhir ?? null;
+        steps.push({
+          key: 'verifikasi_pendidikan_terakhir',
+          name_step: 'Verifikasi Pendidikan Terakhir',
+          status: verifMasaKerjaStatus,
+          color: this.getColorForStatus(verifPendidikanTerakhirStatus),
+          at: calon.data_verifikasi_admin?.verifikator_at ?? null,
+          by: calon.data_verifikasi_admin?.verifikator_by ?? null,
+        });
 
-      //   steps.push({
-      //     key: `verifikasi_${s.toUpperCase()}`,
-      //     name_step: `Verifikasi Administrasi ${s.toUpperCase()}`,
-      //     status,
-      //     color: this.getColorForStatus(status),
-      //     at: calon.data_verifikasi_admin?.verifikator_at ?? null,
-      //     by: calon.data_verifikasi_admin?.verifikator_by ?? null,
-      //     note,
-      //   });
-      // }
+        // Step 5: Verifikasi Teknis Operasional
+        const verifTeknisOperasionalStatus =
+          calon.data_verifikasi_admin?.verifikasi_teknis_operasional ?? null;
+        steps.push({
+          key: 'verifikasi_teknis_operasional',
+          name_step: 'Verifikasi Teknis Operasional',
+          status: verifTeknisOperasionalStatus,
+          color: this.getColorForStatus(verifTeknisOperasionalStatus),
+          at: calon.data_verifikasi_admin?.verifikator_at ?? null,
+          by: calon.data_verifikasi_admin?.verifikator_by ?? null,
+        });
 
-      // // Step 4: Final Verifikasi (Kesimpulan)
-      // const finalStatus = calon.data_verifikasi_admin?.status ?? null;
-      // steps.push({
-      //   key: 'final_verifikasi',
-      //   name_step: 'Kesimpulan Akhir',
-      //   status: finalStatus,
-      //   color: this.getColorForStatus(finalStatus),
-      //   at: calon.data_verifikasi_admin?.verifikator_at ?? null,
-      //   by: calon.data_verifikasi_admin?.verifikator_by ?? null,
-      //   note: calon.data_verifikasi_admin?.keterangan_verifikasi ?? null,
-      // });
+        // Step 5: Verifikasi Surat Sehat
+        const verifSuratSehatStatus =
+          calon.data_verifikasi_admin?.verifikasi_surat_sehat ?? null;
+        steps.push({
+          key: 'verifikasi_surat_sehat',
+          name_step: 'Verifikasi Surat Sehat',
+          status: verifSuratSehatStatus,
+          color: this.getColorForStatus(verifSuratSehatStatus),
+          at: calon.data_verifikasi_admin?.verifikator_at ?? null,
+          by: calon.data_verifikasi_admin?.verifikator_by ?? null,
+        });
 
-      // Tentukan current step terakhir (status bukan pending)
-      const currentStep =
-        steps
-          .slice()
-          .reverse()
-          .find((s) => {
-            const st = s.status ? String(s.status).toLowerCase() : '';
-            return st === 'sesuai' || st === 'tolak' || st === 'tidaksesuai';
-          }) ?? steps[steps.length - 1];
+        // Step 5: Verifikasi Verifikasi DP3
+        const verifDp3Status =
+          calon.data_verifikasi_admin?.verifikasi_verifikasi_dp3 ?? null;
+        steps.push({
+          key: 'verifikasi_verifikasi_dp3',
+          name_step: 'Verifikasi Surat Sehat',
+          status: verifDp3Status,
+          color: this.getColorForStatus(verifDp3Status),
+          at: calon.data_verifikasi_admin?.verifikator_at ?? null,
+          by: calon.data_verifikasi_admin?.verifikator_by ?? null,
+        });
+
+        // Tentukan current step terakhir (status bukan pending)
+        currentStep =
+          steps
+            .slice()
+            .reverse()
+            .find((s) => {
+              const st = s.status ? String(s.status).toLowerCase() : '';
+              return st === 'sesuai' || st === 'tolak' || st === 'tidaksesuai';
+            }) ?? null;
+      }
 
       // ======= Push ke hasil akhir =======
       mappedItem.push({
@@ -292,8 +325,11 @@ export class AdminRepository {
         data_agama: dataAgama || null,
         data_pangkat_golongan: dataPangkatGolongan || null,
         status_kirim_verifikator: item[0]?.ppns_surat?.status ?? false,
-        step_history: steps,
-        current_step: currentStep,
+        status_data: calon.data_verifikasi_admin
+          ? calon.data_verifikasi_admin.status
+          : null,
+        step_history: steps, // kalau tidak ada data_verifikasi_admin → []
+        current_step: currentStep, // kalau tidak ada → null
         ppns_wilayah_kerja: calon.ppns_wilayah_kerja.map((wilayah) => ({
           id: wilayah.id || null,
           id_ppns: wilayah.id_ppns || null,

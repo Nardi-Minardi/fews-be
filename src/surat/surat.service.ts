@@ -110,6 +110,12 @@ export class SuratService {
         );
       }
 
+      // if (existingSuratSebelumnya.status === true) {
+      //   throw new BadRequestException(
+      //     `Surat dengan nomor sebelumnya '${createRequest.no_surat_verifikasi_sebelumnya}' sudah terverifikasi, tidak dapat digunakan kembali`,
+      //   );
+      // }
+
       // Jika nomor surat sebelumnya ada, ambil data PPNS sebelumnya yang verifikasi
       if (existingSuratSebelumnya) {
         existingPpnsDataPns = await this.prismaService.ppnsDataPns.findMany({

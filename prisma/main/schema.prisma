@@ -423,41 +423,42 @@ model PpnsPemberhentianNto {
 
   @@map("tr_ppns_pemberhentian_nto")
 }
+
 //buat admin
 model PpnsVerifikasiData {
-  id                    Int              @id @default(autoincrement())
-  id_surat              Int?             @unique @db.Integer
-  id_data_ppns          Int?             @unique @db.Integer
-  verifikasi_data       verifikasi_enum?
-  keterangan_data       String?          @db.Text
-  verifikasi_wilayah    verifikasi_enum?
-  keterangan_wilayah    String?          @db.Text
-  verifikasi_masa_kerja  verifikasi_enum?
-  keterangan_masa_kerja  String?          @db.Text
+  id                             Int              @id @default(autoincrement())
+  id_surat                       Int?             @unique @db.Integer
+  id_data_ppns                   Int?             @unique @db.Integer
+  verifikasi_data                verifikasi_enum?
+  keterangan_data                String?          @db.Text
+  verifikasi_wilayah             verifikasi_enum?
+  keterangan_wilayah             String?          @db.Text
+  verifikasi_masa_kerja          verifikasi_enum?
+  keterangan_masa_kerja          String?          @db.Text
   verifikasi_pendidikan_terakhir verifikasi_enum?
-  keterangan_pendidikan_terakhir String? @db.Text
-  verifikasi_teknis_operasional   verifikasi_enum?
-  keterangan_teknis_operasional   String?          @db.Text
-  verifikasi_surat_sehat          verifikasi_enum?
-  keterangan_surat_sehat          String?          @db.Text
-  verifikasi_dp3                 verifikasi_enum?
-  keterangan_dp3                 String?          @db.Text
-  status_a              verifikasi_enum?
-  keterangan_a          String?          @db.Text
-  status_b              verifikasi_enum?
-  keterangan_b          String?          @db.Text
-  status_c              verifikasi_enum?
-  keterangan_c          String?          @db.Text
-  status_d              verifikasi_enum?
-  keterangan_d          String?          @db.Text
-  status_e              verifikasi_enum?
-  keterangan_e          String?          @db.Text
-  status_f              verifikasi_enum?
-  keterangan_f          String?          @db.Text
-  keterangan_verifikasi String?          @db.Text
-  verifikator_by        Int?             @db.Integer
-  verifikator_at        DateTime?        @db.Timestamp(6)
-  status                status_enum?
+  keterangan_pendidikan_terakhir String?          @db.Text
+  verifikasi_teknis_operasional  verifikasi_enum?
+  keterangan_teknis_operasional  String?          @db.Text
+  verifikasi_surat_sehat         verifikasi_enum?
+  keterangan_surat_sehat         String?          @db.Text
+  verifikasi_verifikasi_dp3      verifikasi_enum?
+  keterangan_verifikasi_dp3      String?          @db.Text
+  status_a                       verifikasi_enum?
+  keterangan_a                   String?          @db.Text
+  status_b                       verifikasi_enum?
+  keterangan_b                   String?          @db.Text
+  status_c                       verifikasi_enum?
+  keterangan_c                   String?          @db.Text
+  status_d                       verifikasi_enum?
+  keterangan_d                   String?          @db.Text
+  status_e                       verifikasi_enum?
+  keterangan_e                   String?          @db.Text
+  status_f                       verifikasi_enum?
+  keterangan_f                   String?          @db.Text
+  keterangan_verifikasi          String?          @db.Text
+  verifikator_by                 Int?             @db.Integer
+  verifikator_at                 DateTime?        @db.Timestamp(6)
+  status                         status_enum?
 
   ppns_surat    PpnsSurat?   @relation("PpnsSuratToVerifikasiData", fields: [id_surat], references: [id])
   ppns_data_pns PpnsDataPns? @relation("PpnsDataPnsToVerifikasiData", fields: [id_data_ppns], references: [id])

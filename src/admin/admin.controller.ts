@@ -131,16 +131,6 @@ export class AdminController {
     };
   }
 
-//   verifikasi_masa_kerja type (verifikasi_enum)
-// keterangan_masa_kerja type (text)
-// verifikasi_pendidikan_terakhir type (verifikasi_enum)
-// keterangan_pendidikan_terakhir type (text)
-// verifikasi_teknis_operasional type (verifikasi_enum)
-// keterangan_teknis_operasional type (text)
-// verifikasi_surat_sehat type (verifikasi_enum)
-// keterangan_surat_sehat type (text)
-// verifikasi_verifikasi_dp3 type (verifikasi_enum)
-// keterangan_verifikasi_dp3 type (text)
   //do verification
   @ApiOperation({ summary: 'Verifikasi Data PPNS' })
   @Post('/verifikasi-data')
@@ -162,16 +152,29 @@ export class AdminController {
         },
         keterangan_wilayah: { type: 'string', nullable: true },
         verifikasi_masa_kerja: {
-          type: 'string', enum: ['sesuai', 'tidak sesuai', 'tolak'],
+          type: 'string',
+          enum: ['sesuai', 'tidak sesuai', 'tolak'],
         },
         keterangan_masa_kerja: { type: 'string', nullable: true },
-        verifikasi_pendidikan_terakhir: { type: 'string', enum: ['sesuai', 'tidak sesuai', 'tolak'] },
+        verifikasi_pendidikan_terakhir: {
+          type: 'string',
+          enum: ['sesuai', 'tidak sesuai', 'tolak'],
+        },
         keterangan_pendidikan_terakhir: { type: 'string', nullable: true },
-        verifikasi_teknis_operasional: { type: 'string', enum: ['sesuai', 'tidak sesuai', 'tolak'] },
+        verifikasi_teknis_operasional: {
+          type: 'string',
+          enum: ['sesuai', 'tidak sesuai', 'tolak'],
+        },
         keterangan_teknis_operasional: { type: 'string', nullable: true },
-        verifikasi_surat_sehat: { type: 'string', enum: ['sesuai', 'tidak sesuai', 'tolak'] },
+        verifikasi_surat_sehat: {
+          type: 'string',
+          enum: ['sesuai', 'tidak sesuai', 'tolak'],
+        },
         keterangan_surat_sehat: { type: 'string', nullable: true },
-        verifikasi_dp3: { type: 'string', enum: ['sesuai', 'tidak sesuai', 'tolak'] },
+        verifikasi_dp3: {
+          type: 'string',
+          enum: ['sesuai', 'tidak sesuai', 'tolak'],
+        },
         keterangan_dp3: { type: 'string', nullable: true },
         status_a: { type: 'string', enum: ['sesuai', 'tidak sesuai', 'tolak'] },
         keterangan_a: { type: 'string', nullable: true },
@@ -197,14 +200,6 @@ export class AdminController {
   ): Promise<WebResponse<any>> {
     const authorization = headers['authorization'] || '';
     AdminValidation.PPNS_VERIFIKASI_DATA.parse(body); // Validasi input body
-
-    const verifEnumMapped: verifikasi_enum | null = body.verifikasi_data
-      ? (body.verifikasi_data as verifikasi_enum)
-      : null;
-
-    const statusEnumMapped: status_enum | null = body.status
-      ? (body.status as status_enum)
-      : null;
 
     //cek data surat
     const suratData = await this.prismaService.ppnsSurat.findUnique({
@@ -235,12 +230,14 @@ export class AdminController {
     }
 
     //jika sudah ada data verifikasi sebelumnya
-    const existingVerif = await this.prismaService.ppnsVerifikasiData.findFirst({
-      where: {
-        id_surat: body.id_surat,
-        id_data_ppns: body.id_data_ppns,
+    const existingVerif = await this.prismaService.ppnsVerifikasiData.findFirst(
+      {
+        where: {
+          id_surat: body.id_surat,
+          id_data_ppns: body.id_data_ppns,
+        },
       },
-    });
+    );
     if (existingVerif) {
       throw new HttpException(
         `Data verifikasi untuk surat ID ${body.id_surat} dan calon PPNS ID ${body.id_data_ppns} sudah ada/sudah diverifikasi`,
@@ -248,40 +245,80 @@ export class AdminController {
       );
     }
 
+    const mapVerifikasiEnum = (val?: string) => {
+      if (!val) return null;
+      const key = val.toLowerCase().replace(/\s+/g, '');
+      const mapping: Record<string, keyof typeof verifikasi_enum> = {
+        sesuai: 'sesuai',
+        tidaksesuai: 'tidakSesuai',
+        tolak: 'tolak',
+      };
+      return mapping[key] ? verifikasi_enum[mapping[key]] : null;
+    };
+
+    const mapStatusEnum = (val?: string) => {
+      if (!val) return null;
+      const key = val.toLowerCase().replace(/\s+/g, '');
+      const mapping: Record<string, keyof typeof status_enum> = {
+        diterima: 'diterima',
+        databaru: 'dataBaru', // ← penting! tangani case “data baru”
+      };
+      return mapping[key] ? status_enum[mapping[key]] : null;
+    };
+
     const result = await this.prismaService.ppnsVerifikasiData.create({
       data: {
         id_surat: body.id_surat,
         id_data_ppns: body.id_data_ppns,
-        verifikasi_data: verifEnumMapped,
+
+        verifikasi_data: mapVerifikasiEnum(body.verifikasi_data),
         keterangan_data: body.keterangan_data,
-        verifikasi_wilayah: body.verifikasi_wilayah,
+
+        verifikasi_wilayah: mapVerifikasiEnum(body.verifikasi_wilayah),
         keterangan_wilayah: body.keterangan_wilayah,
-        verifikasi_masa_kerja: body.verifikasi_masa_kerja,
+
+        verifikasi_masa_kerja: mapVerifikasiEnum(body.verifikasi_masa_kerja),
         keterangan_masa_kerja: body.keterangan_masa_kerja,
-        verifikasi_pendidikan_terakhir: body.verifikasi_pendidikan_terakhir,
+
+        verifikasi_pendidikan_terakhir: mapVerifikasiEnum(
+          body.verifikasi_pendidikan_terakhir,
+        ),
         keterangan_pendidikan_terakhir: body.keterangan_pendidikan_terakhir,
-        verifikasi_teknis_operasional: body.verifikasi_teknis_operasional,
+
+        verifikasi_teknis_operasional: mapVerifikasiEnum(
+          body.verifikasi_teknis_operasional,
+        ),
         keterangan_teknis_operasional: body.keterangan_teknis_operasional,
-        verifikasi_surat_sehat: body.verifikasi_surat_sehat,
+
+        verifikasi_surat_sehat: mapVerifikasiEnum(body.verifikasi_surat_sehat),
         keterangan_surat_sehat: body.keterangan_surat_sehat,
-        verifikasi_dp3: body.verifikasi_dp3,
-        keterangan_dp3: body.keterangan_dp3,
-        status_a: body.status_a,
+
+        verifikasi_verifikasi_dp3: mapVerifikasiEnum(body.verifikasi_dp3),
+        keterangan_verifikasi_dp3: body.keterangan_dp3,
+
+        status_a: mapVerifikasiEnum(body.status_a),
         keterangan_a: body.keterangan_a,
-        status_b: body.status_b,
+
+        status_b: mapVerifikasiEnum(body.status_b),
         keterangan_b: body.keterangan_b,
-        status_c: body.status_c,
+
+        status_c: mapVerifikasiEnum(body.status_c),
         keterangan_c: body.keterangan_c,
-        status_d: body.status_d,
+
+        status_d: mapVerifikasiEnum(body.status_d),
         keterangan_d: body.keterangan_d,
-        status_e: body.status_e,
+
+        status_e: mapVerifikasiEnum(body.status_e),
         keterangan_e: body.keterangan_e,
-        status_f: body.status_f,
+
+        status_f: mapVerifikasiEnum(body.status_f),
         keterangan_f: body.keterangan_f,
+
         keterangan_verifikasi: body.keterangan_verifikasi,
         verifikator_by: body.verifikator_by,
         verifikator_at: new Date(),
-        status: statusEnumMapped,
+
+        status: mapStatusEnum(body.status),
       },
     });
 
@@ -294,7 +331,7 @@ export class AdminController {
 
   @Get('/calon-ppns/:id_surat')
   @HttpCode(200)
-  @ApiOperation({ summary: 'Get Detail Transasi calon ppns by id surat' })
+  @ApiOperation({ summary: 'Get Daftar Transaksi calon ppns by id surat' })
   async detailCalonPpns(
     @Param('id_surat') id_surat: string,
     @Headers() headers: Record<string, any>,
@@ -303,6 +340,11 @@ export class AdminController {
   ): Promise<any> {
     // ✅ ubah ke any
     const authorization = headers['authorization'] || '';
+
+    if (!id_surat) {
+      throw new BadRequestException('id_surat is required');
+    }
+
     const userLogin = await getUserFromToken(authorization);
     if (!userLogin) {
       throw new BadRequestException('Authorization is missing');
