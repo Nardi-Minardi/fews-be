@@ -1,7 +1,10 @@
 # --- Base image ---
 FROM node:22-alpine AS base
 WORKDIR /app
-ENV NODE_ENV=development
+
+# set environment default (bisa override lewat docker-compose)
+ENV NODE_ENV=staging \
+    PORT=3014
 
 # --- Dependencies stage ---
 FROM base AS dependencies
@@ -25,14 +28,11 @@ COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/dist ./dist
 
 # Generate Prisma Client untuk semua schema
-RUN npx prisma generate --schema=./prisma/main/schema.prisma \
-  && npx prisma generate --schema=./prisma/master/schema.prisma \
-  && npx prisma generate --schema=./prisma/userman/schema.prisma \
-  && npx prisma generate --schema=./prisma/notaris/schema.prisma
+RUN npx prisma generate --schema=./prisma/main/schema.prisma 
 
 # Debug: cek isi dist
 RUN ls -la ./dist
 
-EXPOSE 3013
+EXPOSE 3014
 CMD ["node", "dist/main"]
   

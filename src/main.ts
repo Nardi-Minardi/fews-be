@@ -6,6 +6,8 @@ import { ValidationPipe } from '@nestjs/common';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  // Global API prefix
+  app.setGlobalPrefix('api/v1');
 
   // Logger
   const logger = app.get(WINSTON_MODULE_NEST_PROVIDER);
@@ -36,19 +38,60 @@ async function bootstrap() {
 
   // Setup OpenAPI config
   const config = new DocumentBuilder()
-    .setTitle('FEWS')
-    .setDescription('API documentation for AHU PPNS application')
+    .setTitle('FEWS Multi-Monitor Dashboard API')
+    .setDescription(
+      `
+      # FEWS (Flood Early Warning System) API
+
+      ## 🔐 Authentication
+      Sistem menggunakan JWT Bearer Token authentication. 
+
+      ### Default Test Accounts:
+      - **Admin**: username \`admin\`, password \`admin123\`
+      - **Operator**: username \`operator_jabar\`, password \`operator123\`  
+      - **User**: username \`user_bandung\`, password \`user123\`
+
+      ### How to authenticate:
+      1. Call POST /auth/login dengan credentials
+      2. Copy \`access_token\` dari response
+      3. Click "Authorize" button di atas dan paste token
+      4. Format: \`Bearer your_access_token_here\`
+
+      ## 📊 Role-Based Access:
+      - **Admin**: Full access ke semua endpoints
+      - **Operator**: Read/write dashboard & sensors, read users  
+      - **User**: Read-only access ke dashboard & sensors
+
+      ## 🌊 WebSocket Real-time:
+      - Connect ke \`ws://localhost:${process.env.PORT}/ws\`
+      - Real-time sync antar multiple monitors
+      - Auto sensor updates setiap 30 detik
+          `,
+    )
     .setVersion('1.0')
-    .addBearerAuth()
+    .addBearerAuth(
+      {
+        type: 'http',
+        scheme: 'bearer',
+        bearerFormat: 'JWT',
+        name: 'JWT',
+        description: 'Enter JWT token',
+        in: 'header',
+      },
+      'JWT-auth',
+    )
     .build();
 
   const document = SwaggerModule.createDocument(app, config);
 
-  // Swagger UI resmi di /api
-  SwaggerModule.setup('api', app, document);
+  // Serve OpenAPI JSON for Scalar at /api/v1/api-json
+  app.getHttpAdapter().get('/api/v1/api-json', (req, res) => {
+    res.setHeader('Content-Type', 'application/json');
+    res.end(JSON.stringify(document));
+  });
 
-  // ✅ Scalar UI Documentation (pakai /api-json bawaan SwaggerModule)
-  app.getHttpAdapter().get('/docs', (req, res) => {
+  // ✅ Scalar UI Documentation
+  app.getHttpAdapter().get('/api/v1/docs', (req, res) => {
     const html = `
     <!doctype html>
     <html>
@@ -63,7 +106,7 @@ async function bootstrap() {
       <body>
         <script
           id="api-reference"
-          data-url="/api-json"
+          data-url="/api/v1/api-json"
           data-configuration='{
             "theme": "kepler",
             "layout": "modern",
@@ -76,10 +119,11 @@ async function bootstrap() {
     res.setHeader('Content-Type', 'text/html');
     res.send(html);
   });
-
-  await app.listen(process.env.PORT || 3013, '0.0.0.0');
+  
+  const port = Number(process.env.PORT);
+  await app.listen(port, '0.0.0.0');
   console.log(
-    `Application is running on: http://localhost:${process.env.PORT ?? 3013}`,
+    `Application is running on: http://localhost:${port}`,
   );
 }
 void bootstrap();

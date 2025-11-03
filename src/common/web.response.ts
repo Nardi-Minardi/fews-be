@@ -1,5 +1,5 @@
 export class WebResponse<T, Pagination = undefined> {
-  statusCode?: number;
+  status_code?: number;
   data?: T;
   pagination?: Pagination;
   message?: string;
@@ -7,7 +7,7 @@ export class WebResponse<T, Pagination = undefined> {
 }
 
 export class Pagination {
-  currentPage: number;
-  totalPage: number;
-  totalData: number;
+  current_page: number;
+  total_page: number;
+  total_data: number;
 }

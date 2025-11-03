@@ -17,7 +17,7 @@ export class ValidationService {
         // Gunakan WebResponse tanpa "message"
         throw new HttpException(
           Object.assign(new WebResponse(), {
-            statusCode: HttpStatus.UNPROCESSABLE_ENTITY,
+            status_code: HttpStatus.UNPROCESSABLE_ENTITY,
             message: 'Validation failed',
             errors: formattedErrors,
           }),

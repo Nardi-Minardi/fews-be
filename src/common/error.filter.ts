@@ -29,7 +29,7 @@ export class ErrorFilter implements ExceptionFilter {
       } else {
         // Kalau string, bungkus manual
         response.status(exception.getStatus()).json({
-          statusCode: exception.getStatus(),
+          status_code: exception.getStatus(),
           message: res,
         });
       }
@@ -42,7 +42,7 @@ export class ErrorFilter implements ExceptionFilter {
       this.logger.error('Error', { error: formattedErrors });
 
       response.status(422).json({
-        statusCode: 422,
+        status_code: 422,
         errors: formattedErrors,
       });
     }
@@ -65,14 +65,14 @@ export class ErrorFilter implements ExceptionFilter {
     //   this.logger.error('Validation Error', { error: formattedErrors });
 
     //   response.status(422).json({
-    //     statusCode: 422,
+    //     status_code: 422,
     //     errors: formattedErrors,
     //   });
     // }
     else {
       this.logger.error('Error', { error: exception.message });
       response.status(500).json({
-        statusCode: 500,
+        status_code: 500,
         message: exception.message,
       });
     }

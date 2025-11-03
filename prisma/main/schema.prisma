@@ -1,9 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
   output   = "../../node_modules/.prisma/main-client"
@@ -12,4 +6,40 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+}
+
+/// We could not retrieve columns for the underlying table. Either it has none or you are missing rights to see them. Please check your privileges.
+// model m_das {
+// }
+
+model m_kab_kota {
+  id         Int       @id @default(autoincrement())
+  code       String?   @db.VarChar(10)
+  name       String?   @db.VarChar(100)
+  created_at DateTime? @default(now()) @db.Timestamp(6)
+  updated_at DateTime? @default(now()) @db.Timestamp(6)
+}
+
+model m_kecamatan {
+  id         Int       @id @default(autoincrement())
+  code       String?   @db.VarChar(10)
+  name       String?   @db.VarChar(100)
+  created_at DateTime? @default(now()) @db.Timestamp(6)
+  updated_at DateTime? @default(now()) @db.Timestamp(6)
+}
+
+model m_kel_des {
+  id         Int       @id @default(autoincrement())
+  code       String?   @db.VarChar(10)
+  name       String?   @db.VarChar(100)
+  created_at DateTime? @default(now()) @db.Timestamp(6)
+  updated_at DateTime? @default(now()) @db.Timestamp(6)
+}
+
+model m_provinsi {
+  id         Int       @id @default(autoincrement())
+  code       String?   @db.VarChar(10)
+  name       String?   @db.VarChar(100)
+  created_at DateTime? @default(now()) @db.Timestamp(6)
+  updated_at DateTime? @default(now()) @db.Timestamp(6)
 }

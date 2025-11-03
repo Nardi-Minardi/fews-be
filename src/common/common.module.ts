@@ -2,9 +2,7 @@ import { Global, Module } from '@nestjs/common';
 import { WinstonModule } from 'nest-winston';
 import * as winston from 'winston';
 import {
-  MasterPrismaService,
   PrismaService,
-  UsermanPrismaService,
 } from './prisma.service';
 import { RedisService } from './redis.service';
 import { ValidationService } from './validation.service';
@@ -43,14 +41,12 @@ import { S3Service } from './s3.service';
     }),
     JwtModule.register({
       global: true,
-      secret: process.env.JWT_SECRET,
+      secret: process.env.JWT_SECRET || 'ItgdFVuiX2Kn7F6hLlYT',
       signOptions: { expiresIn: '7d' },
     }),
   ],
   providers: [
     PrismaService,
-    MasterPrismaService,
-    UsermanPrismaService,
     ValidationService,
     S3Service,
     // RedisService,
@@ -59,8 +55,6 @@ import { S3Service } from './s3.service';
   ],
   exports: [
     PrismaService,
-    MasterPrismaService,
-    UsermanPrismaService,
     ValidationService,
     S3Service,
   ],
