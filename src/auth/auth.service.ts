@@ -16,7 +16,7 @@ export class AuthService {
   constructor(
     private readonly jwtService: JwtService,
     private readonly validationService: ValidationService,
-    private readonly repo: AuthRepository,
+    private readonly authRepository: AuthRepository,
   ) {}
 
   async login(request: any): Promise<LoginResponse> {
@@ -25,7 +25,7 @@ export class AuthService {
       AuthValidation.loginSchema,
       request,
     );
-    const user = await this.repo.findByEmail(createRequest.email);
+    const user = await this.authRepository.findByEmail(createRequest.email);
     if (!user) {
       throw new HttpException('Invalid username or password', 401);
     }
@@ -36,7 +36,7 @@ export class AuthService {
     if (user.is_active === false) {
       throw new HttpException('User account is disabled', 400);
     }
-    await this.repo.updateLastLogin(user.id);
+    await this.authRepository.updateLastLogin(user.id);
 
     const payload: JwtPayload = {
       sub: user.id,
@@ -79,17 +79,17 @@ export class AuthService {
       request,
     );
 
-    const existingUser = await this.repo.findByUsername(createRequest.username);
+    const existingUser = await this.authRepository.findByUsername(createRequest.username);
     if (existingUser) {
       throw new HttpException('Username already exists', 400);
     }
-    const existingEmail = await this.repo.findByEmail(createRequest.email);
+    const existingEmail = await this.authRepository.findByEmail(createRequest.email);
     if (existingEmail) {
       throw new HttpException('Email already exists', 400);
     }
 
     const hashedPassword = await bcrypt.hash(createRequest.password, 10);
-    const newUser = await this.repo.createUser({
+    const newUser = await this.authRepository.createUser({
       username: createRequest.username,
       email: createRequest.email,
       password: hashedPassword,
@@ -127,7 +127,7 @@ export class AuthService {
       const decoded = this.jwtService.verify(createRequest.refresh_token, {
         secret: jwtSecret,
       });
-      const user = await this.repo.findById(decoded.sub);
+      const user = await this.authRepository.findById(decoded.sub);
       if (!user || user.is_active === false) {
         throw new HttpException('Invalid refresh token', 401);
       }
@@ -152,7 +152,7 @@ export class AuthService {
   }
 
   async getProfile(userId: number): Promise<Omit<User, 'password'>> {
-    const user = await this.repo.findById(userId);
+    const user = await this.authRepository.findById(userId);
     if (!user) {
       throw new HttpException('User not found', 404);
     }
@@ -173,7 +173,7 @@ export class AuthService {
   }
 
   async getAllUsers(): Promise<Omit<User, 'password'>[]> {
-    const users = await this.repo.findAllActive();
+    const users = await this.authRepository.findAllActive();
     return users.map((u) => {
       return {
         id: u.id as any,
@@ -193,7 +193,7 @@ export class AuthService {
   }
 
   async getUsersByRole(role: UserRole): Promise<Omit<User, 'password'>[]> {
-    const users = await this.repo.findByRoleActive(role as any);
+    const users = await this.authRepository.findByRoleActive(role as any);
     return users.map(
       (u) =>
         ({

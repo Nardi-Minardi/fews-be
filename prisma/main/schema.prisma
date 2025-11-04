@@ -44,18 +44,21 @@ model m_provinsi {
 }
 
 model m_das {
-  id            Int                      @id @default(autoincrement())
-  sungai_id     Int?
-  das_uid       String?                  @db.VarChar(100)
-  kode_das      String?                  @db.VarChar(100)
-  name          String?                  @db.VarChar(255)
-  luas          Float?
-  ws_uid        String?                  @db.VarChar(100)
-  color         String?                  @db.VarChar(100)
-  geom          Unsupported("geometry")?
-  created_at    DateTime?                @default(now()) @db.Timestamp(6)
-  updated_at    DateTime?                @default(now()) @db.Timestamp(6)
-  provinsi_code String?                  @db.VarChar(20)
+  id             Int                      @id @default(autoincrement())
+  sungai_id      Int?
+  das_uid        String?                  @db.VarChar(100)
+  kode_das       String?                  @db.VarChar(100)
+  name           String?                  @db.VarChar(255)
+  luas           Float?
+  ws_uid         String?                  @db.VarChar(100)
+  color          String?                  @db.VarChar(100)
+  geom           Unsupported("geometry")?
+  created_at     DateTime?                @default(now()) @db.Timestamp(6)
+  updated_at     DateTime?                @default(now()) @db.Timestamp(6)
+  provinsi_code  String?                  @db.VarChar(20)
+  kab_kota_code  String?                  @db.VarChar(20)
+  kecamatan_code String?                  @db.VarChar(20)
+  kel_des_code   String?                  @db.VarChar(20)
 }
 
 model m_users {
@@ -91,6 +94,7 @@ model m_device {
   sungai_id         Int?
   owner             String?   @db.VarChar(255)
   name              String    @db.VarChar(255)
+  name_type         String?   @db.VarChar(255)
   device_status     String?   @db.VarChar(50)
   last_sending_data DateTime? @db.Timestamptz(6)
   last_battery      Decimal?  @db.Decimal(5, 2)

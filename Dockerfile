@@ -34,5 +34,5 @@ RUN npx prisma generate --schema=./prisma/main/schema.prisma
 RUN ls -la ./dist
 
 EXPOSE 3014
-CMD ["node", "dist/main"]
+CMD ["node", "dist/src/main.js"]
   

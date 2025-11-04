@@ -22,11 +22,11 @@ export class AuthRepository {
 	}
 
 	findByUsername(username: string) {
-		return this.prisma.m_users.findUnique({ where: { username } });
+		return this.prisma.m_users.findFirst({ where: { username } });
 	}
 
 	findById(id: number) {
-		return this.prisma.m_users.findUnique({ where: { id } });
+		return this.prisma.m_users.findFirst({ where: { id } });
 	}
 
 	async createUser(data: CreateUserInput) {
