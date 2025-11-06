@@ -94,41 +94,24 @@ export class DashboardRepository {
         dvc.value,
         dvc.created_at,
         dvc.updated_at,
-        d.name AS das_name,
-        p.code AS provinsi_code,
-        p.name AS provinsi_name,
-        k.code AS kab_kota_code,
-        k.name AS kab_kota_name,
-        kc.code AS kecamatan_code,
-        kc.name AS kecamatan_name,
-        kd.code AS kel_des_code,
-        kd.name AS kel_des_name
+        d.name AS das_name
+       
       FROM m_device dvc
       LEFT JOIN m_das d ON d.id = dvc.das_id
-      LEFT JOIN m_provinsi p ON p.code = d.provinsi_code
-      LEFT JOIN m_kab_kota k ON k.code = d.kab_kota_code
-      LEFT JOIN m_kecamatan kc ON kc.code = d.kecamatan_code
-      LEFT JOIN m_kel_des kd ON kd.code = d.kel_des_code
+     
       WHERE
         (
           ${isSearchEmpty} OR
           LOWER(dvc.name) LIKE ${keyword} OR
-          LOWER(d.name) LIKE ${keyword} OR
-          LOWER(p.name) LIKE ${keyword} OR
-          LOWER(k.name) LIKE ${keyword} OR
-          LOWER(kc.name) LIKE ${keyword} OR
-          LOWER(kd.name) LIKE ${keyword}
+          LOWER(d.name) LIKE ${keyword}
         )
-        AND (${!provinsi_code} OR p.code = ${provinsi_code})
-        AND (${!kab_kota_code} OR k.code = ${kab_kota_code})
-        AND (${!kecamatan_code} OR kc.code = ${kecamatan_code})
-        AND (${!kel_des_code} OR kd.code = ${kel_des_code})
+       
         AND 
         (
           ${!device_tag_id || device_tag_id.length === 0}
           OR dvc.device_tag_id && ${device_tag_id}::int[]
         )
-      ORDER BY dvc.name ASC
+      ORDER BY dvc.updated_at DESC
       LIMIT ${limit} OFFSET ${offset};
     `;
   }
@@ -142,10 +125,6 @@ export class DashboardRepository {
       SELECT COUNT(*)::int AS count
       FROM m_device dvc
       LEFT JOIN m_das d ON d.id = dvc.das_id
-      LEFT JOIN m_provinsi p ON p.code = d.provinsi_code
-      LEFT JOIN m_kab_kota k ON k.code = d.kab_kota_code
-      LEFT JOIN m_kecamatan kc ON kc.code = d.kecamatan_code
-      LEFT JOIN m_kel_des kd ON kd.code = d.kel_des_code
       -- WHERE (
       --   ${cleanSearch === ''} OR
       --   LOWER(dvc.name) LIKE ${keyword} OR

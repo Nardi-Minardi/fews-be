@@ -1,17 +1,62 @@
 version: '3.8'
 
 services:
-  api:
+  fews-api:
+    build: .
     image: nardiminardi/fews-api:latest
     container_name: fews-api
     restart: unless-stopped
     ports:
-      - "${PORT:-3014}:${PORT:-3014}" # fallback to 3014 if PORT is not set
+      - "${PORT:-3014}:${PORT:-3014}"
+    env_file:
+      - .env
+    environment:
+      - NODE_ENV=${NODE_ENV:-staging}
+      - PORT=${PORT:-3014}
+    volumes:
+      - ./logs:/app/logs
+    depends_on:
+      - fews-redis
+    networks:
+      - fews-net
+
+  fews-worker:
+    build: .
+    image: nardiminardi/fews-api:latest
+    container_name: fews-worker
+    restart: unless-stopped
+    command: ["node", "dist/src/worker.main.js"]
+    env_file:
+      - .env
+    environment:
+      - NODE_ENV=${NODE_ENV:-staging}
+    depends_on:
+      - fews-redis
+    networks:
+      - fews-net
+
+  fews-telemetry-bot:
+    image: nardiminardi/fews-telemetry-bot:latest
+    container_name: fews-telemetry-bot
+    restart: unless-stopped
     env_file:
       - .env
     volumes:
-      - ./logs:/app/logs   # logs akan keluar ke folder host ./logs
+      - ./logs:/app/logs
+    depends_on:
+      - fews-redis
+    networks:
+      - fews-net
 
+  fews-redis:
+    image: redis:7-alpine
+    container_name: fews-redis
+    restart: unless-stopped
+    command: ["redis-server"]
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
     networks:
       - fews-net
 

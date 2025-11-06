@@ -11,6 +11,7 @@ import {
 import { Public } from 'src/common/decorators/public.decorator';
 import { DashboardService } from './dashboard.service';
 import { PrismaService } from 'src/common/prisma.service';
+import { RedisCache } from 'src/common/decorators/redis-cache.decorator';
 
 @ApiTags('Dashboard')
 @Controller('dashboard')
@@ -25,6 +26,7 @@ export class DashboardController {
   @Get('das')
   @HttpCode(HttpStatus.OK)
   @Public()
+  @RedisCache('fews-be-dashboard-das-list', 5)
   @ApiOperation({
     summary: 'Get DAS list',
     description:
@@ -73,6 +75,7 @@ export class DashboardController {
   @Get('devices/tags')
   @HttpCode(HttpStatus.OK)
   @Public()
+  @RedisCache('fews-be-dashboard-devices-tags-list', 5)
   @ApiOperation({
     summary: 'Get Device Tags list',
     description: 'Mengambil daftar tag device (ARR/AWLR/AWS) yang tersedia.',

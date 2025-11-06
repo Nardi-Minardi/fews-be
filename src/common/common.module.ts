@@ -1,17 +1,17 @@
 import { Global, Module } from '@nestjs/common';
 import { WinstonModule } from 'nest-winston';
 import * as winston from 'winston';
-import {
-  PrismaService,
-} from './prisma.service';
+import { PrismaService } from './prisma.service';
 import { RedisService } from './redis.service';
 import { ValidationService } from './validation.service';
-import { APP_FILTER, APP_GUARD } from '@nestjs/core';
+import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { ErrorFilter } from './error.filter';
 import { AuthGuard } from './guards/auth.guard';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigService, ConfigModule } from '@nestjs/config';
 import { S3Service } from './s3.service';
+import { RedisCacheInterceptor } from './interceptors/redis-cache.interceptor';
+import { GeocodeService } from './geocode.service';
 
 @Global()
 @Module({
@@ -49,14 +49,18 @@ import { S3Service } from './s3.service';
     PrismaService,
     ValidationService,
     S3Service,
-    // RedisService,
+    RedisService,
+    GeocodeService,
     { provide: APP_FILTER, useClass: ErrorFilter },
     { provide: APP_GUARD, useClass: AuthGuard },
+    { provide: APP_INTERCEPTOR, useClass: RedisCacheInterceptor },
   ],
   exports: [
     PrismaService,
     ValidationService,
     S3Service,
+    RedisService,
+    GeocodeService,
   ],
 })
 export class CommonModule {}

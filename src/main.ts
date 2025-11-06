@@ -119,11 +119,11 @@ async function bootstrap() {
     res.setHeader('Content-Type', 'text/html');
     res.send(html);
   });
-  
+
   const port = Number(process.env.PORT);
   await app.listen(port, '0.0.0.0');
   console.log(
-    `Application is running on: http://localhost:${port}`,
+    `Application is running on: http://localhost:${port} (WS at /ws)`,
   );
 }
 void bootstrap();

@@ -15,17 +15,21 @@ import Redis from 'ioredis';
 @Injectable()
 export class RedisService implements OnModuleInit, OnModuleDestroy {
   private client: Redis;
+  private subClient: Redis;
 
   constructor(
     @Inject(WINSTON_MODULE_PROVIDER) private readonly logger: Logger,
   ) {}
 
   onModuleInit() {
-    this.client = new Redis({
-      host: process.env.REDIS_URL || 'localhost',
+    const baseConfig = {
+      host: process.env.REDIS_HOST || 'localhost',
       port: Number(process.env.REDIS_PORT) || 6379,
       password: process.env.REDIS_PASSWORD || undefined,
-    });
+    } as const;
+
+    this.client = new Redis(baseConfig);
+    this.subClient = new Redis(baseConfig);
 
     this.client.on('connect', () => {
       this.logger.info('[Redis] Connected to server');
@@ -70,8 +74,34 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
     return result;
   }
 
+  // --- Pub/Sub helpers ---
+  async publish(channel: string, message: string) {
+    const receivers = await this.client.publish(channel, message);
+    this.logger.info(
+      `[Redis] PUBLISH channel=${channel} receivers=${receivers}`,
+    );
+    return receivers;
+  }
+
+  async subscribe(channel: string, handler: (message: string) => void) {
+    // Lazily initialize subscriber client in case onModuleInit hasn't run yet
+    if (!this.subClient) {
+      this.subClient = new Redis({
+        host: process.env.REDIS_HOST || 'localhost',
+        port: Number(process.env.REDIS_PORT) || 6379,
+        password: process.env.REDIS_PASSWORD || undefined,
+      });
+    }
+    await this.subClient.subscribe(channel);
+    this.logger.info(`[Redis] SUBSCRIBE channel=${channel}`);
+    this.subClient.on('message', (ch, msg) => {
+      if (ch === channel) handler(msg);
+    });
+  }
+
   onModuleDestroy() {
     this.logger.info('[Redis] Disconnecting...');
+    this.subClient?.quit();
     return this.client.quit();
   }
 }
