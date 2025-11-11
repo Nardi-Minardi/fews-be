@@ -7,6 +7,7 @@ import { Inject } from '@nestjs/common';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { Logger } from 'winston';
 import { DeviceRepository } from 'src/device/device.repostiory';
+import { PrismaService } from 'src/common/prisma.service';
 
 @Injectable()
 export class SensorService {
@@ -15,7 +16,8 @@ export class SensorService {
     private readonly validationService: ValidationService,
     private readonly sensorRepository: SensorRepository,
     private readonly dasRepository: DasRepository,
-  private readonly deviceRepository: DeviceRepository,
+    private readonly deviceRepository: DeviceRepository,
+    private readonly prisma: PrismaService,
   ) {}
 
   async storeSensor(request: any): Promise<any> {
@@ -27,16 +29,6 @@ export class SensorService {
       SensorValidation.postTelemetrySchema,
       request,
     );
-
-    if (createRequest.device_type === 'ARR') {
-      createRequest.name_type = 'PCH';
-    } else if (createRequest.device_type === 'AWLR') {
-      createRequest.name_type = 'PDA';
-    } else if (createRequest.device_type === 'AWS') {
-      createRequest.name_type = 'Pos Cuaca';
-    } else {
-      createRequest.name_type = 'Other';
-    }
 
     // Resolve das based on point (lat, long)
     let das: any = null;
@@ -51,19 +43,10 @@ export class SensorService {
       });
     }
 
-    // Resolve device_tag_id from device_type
-    let device_tag_id: number[] = [];
-    try {
-      const tagId = await this.deviceRepository.getTagIdByType(createRequest.device_type as any);
-      if (typeof tagId === 'number') device_tag_id = [tagId];
-    } catch (e) {
-      this.logger.warn('Failed to resolve device_tag_id from device_type', { error: (e as any)?.message });
-    }
 
     const createData = {
       device_id: createRequest.device_id,
       name: createRequest.name,
-      device_type: createRequest.device_type,
       device_status: createRequest.device_status,
       timestamp: createRequest.timestamp,
       last_battery: createRequest.last_battery,
@@ -71,16 +54,60 @@ export class SensorService {
       lat: createRequest.lat,
       long: createRequest.long,
       das_id: das?.id ?? null,
-      device_tag_id,
       value: createRequest.value,
       cctv_url: createRequest.cctv_url,
       sensors: createRequest.sensors,
-
-      name_type: createRequest.name_type,
+      hidrologi_type: createRequest.hidrologi_type,
     };
 
     const result = await this.sensorRepository.upsertSensors(createData);
 
     return result;
+  }
+
+  // Merge sensors with criteria master to classify sensors into levels
+  async getSensorsWithCriteriaByDeviceUid(device_uid: string) {
+    const sensors = await this.sensorRepository.getSensorsByDeviceUid(device_uid);
+    if (!sensors.length) {
+      return { total: 0, sensors: [], criteria: [] };
+    }
+
+    // Load all criteria masters
+    const masters = await this.prisma.m_criteria.findMany({ orderBy: { id: 'asc' } });
+    const byTagId = new Map<number, any>();
+    for (const m of masters) {
+      if (m.device_tag_id != null) byTagId.set(m.device_tag_id, m);
+    }
+
+    // Helper to classify by range
+    const classify = (criteriaArr: any[] | null | undefined, val: number) => {
+      if (!Array.isArray(criteriaArr)) return null;
+      for (const c of criteriaArr) {
+        const startOk = val >= Number(c.start);
+        const toOk = c.to == null ? true : val <= Number(c.to);
+        if (startOk && toOk) return { level: c.level, name: c.name, color: c.color ?? null, icon: c.icon ?? null };
+      }
+      return null;
+    };
+
+    const enriched = sensors.map((s: any) => {
+      const tagIds: number[] = Array.isArray(s.device_tag_id) ? s.device_tag_id : [];
+      const tagId = tagIds[0];
+      let criteriaMaster: any = tagId != null ? byTagId.get(tagId) : undefined;
+      let criteriaMatch: any = null;
+      if (criteriaMaster && s.value != null && (s.sensor_type?.toLowerCase() === 'rainfall' || s.name?.toLowerCase().includes('rain'))) {
+        criteriaMatch = classify(criteriaMaster.criteria as any[], Number(s.value));
+      }
+      return {
+        ...s,
+        criteria_master: criteriaMaster ?? null,
+        criteria_status: criteriaMatch?.level ?? s.criteria_status ?? null,
+        criteria_label: criteriaMatch?.name ?? null,
+        criteria_color: criteriaMatch?.color ?? null,
+        criteria_icon: criteriaMatch?.icon ?? null,
+      };
+    });
+
+    return { total: enriched.length, sensors: enriched, criteria: masters };
   }
 }

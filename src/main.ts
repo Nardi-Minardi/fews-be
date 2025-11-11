@@ -15,7 +15,7 @@ async function bootstrap() {
 
   // Global CORS
   app.enableCors({
-    origin: true, // TODO: batasi di production
+    origin: true,
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
     credentials: true,
     allowedHeaders: [

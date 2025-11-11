@@ -11,7 +11,7 @@ import { RedisService } from 'src/common/redis.service';
 
 @WebSocketGateway({
   cors: {
-    origin: '*', // gunakan origin FE kamu kalau ingin aman: ['http://localhost:5173']
+    origin: true,
     credentials: true,
   },
   namespace: '/ws',

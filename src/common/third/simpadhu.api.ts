@@ -41,7 +41,7 @@ export class SimpadhuApi {
       throw new Error(`Failed to fetch voucher. Status: ${response.status}`);
     }
 
-    const data = await response.json();
+    const data: any = await response.json();
     this.logger.debug('Voucher API raw response', { data });
 
     if (data.success === false) {

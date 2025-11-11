@@ -88,13 +88,13 @@ model spatial_ref_sys {
 
 model m_device {
   id                Int       @id @default(autoincrement())
-  device_uid        String    @unique @db.VarChar(255)
+  device_uid        String?   @unique @db.VarChar(255)
   device_tag_id     Int[]
   das_id            Int?
   sungai_id         Int?
   owner             String?   @db.VarChar(255)
   name              String    @db.VarChar(255)
-  name_type         String?   @db.VarChar(255)
+  hidrologi_type    String?   @db.VarChar(255)
   device_status     String?   @db.VarChar(50)
   last_sending_data DateTime? @db.Timestamptz(6)
   last_battery      Decimal?  @db.Decimal(5, 2)
@@ -105,10 +105,6 @@ model m_device {
   value             Decimal?  @db.Decimal(10, 2)
   created_at        DateTime? @default(now()) @db.Timestamp(6)
   updated_at        DateTime? @default(now()) @db.Timestamp(6)
-
-  // @@unique([device_uid]) // Removed duplicate unique constraint
-  //one to many relation tr_sensor
-  tr_sensor tr_sensor[]
 }
 
 model m_device_tag {
@@ -130,8 +126,8 @@ model m_criteria {
 model tr_sensor {
   id                Int       @id @default(autoincrement())
   device_id         Int
-  sensor_uid        String    @db.VarChar(255)
-  device_uid        String    @db.VarChar(255)
+  sensor_uid        String?   @db.VarChar(255)
+  device_uid        String?   @db.VarChar(255)
   name              String    @db.VarChar(255)
   unit              String    @db.VarChar(100)
   sensor_type       String?   @db.VarChar(255)
@@ -141,15 +137,12 @@ model tr_sensor {
   value_change      Decimal?  @db.Decimal(10, 2)
   debit             Decimal?  @db.Decimal(10, 2)
   last_sending_data DateTime? @db.Timestamp(6)
+  years_data        Int[]
+  elevation         Decimal?  @db.Decimal(10, 2)
   created_at        DateTime? @default(now()) @db.Timestamp(6)
   updated_at        DateTime? @default(now()) @db.Timestamp(6)
 
-  // Relasi ke m_device
-  m_device m_device? @relation(fields: [device_uid], references: [device_uid], onDelete: Cascade, onUpdate: Cascade)
-
-  @@unique([device_uid, sensor_uid], map: "uq_tr_sensor_deviceuid_sensoruid")
-  // Unique kombinasi antara device dan sensor
-  @@unique([device_uid, sensor_uid], name: "device_uid_sensor_uid")
+  @@unique([device_uid, sensor_uid], map: "device_uid_sensor_uid")
 }
 
 enum user_role {

@@ -1,4 +1,13 @@
-import { Controller, HttpStatus, HttpCode, Post, Body } from '@nestjs/common';
+import {
+  Controller,
+  HttpStatus,
+  HttpCode,
+  Post,
+  Body,
+  Get,
+  Query,
+  Param,
+} from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bull';
 import { Queue } from 'bull';
 import {
@@ -42,7 +51,6 @@ export class SensorController {
       properties: {
         device_id: { type: 'string', example: 'DEVICE-001' },
         name: { type: 'string', example: 'Rahtawu - Level Water' },
-        device_type: { type: 'string', example: 'AWLR' },
         device_status: { type: 'string', example: 'Online' },
         timestamp: { type: 'string', example: '2025-11-05T12:00:00Z' },
         last_battery: { type: 'number', example: 85.5 },
@@ -113,8 +121,20 @@ export class SensorController {
     };
   }
 
+  // @Post('telemetry')
+  // @Public()
+  // @HttpCode(HttpStatus.ACCEPTED)
+  // async telemetryAlias(@Body() request): Promise<WebResponse<any>> {
+  //   return this.receiveTelemetry(request);
+  // }
+
   @Post('test-message')
   @Public()
+  @ApiOperation({
+    summary: 'Kirim pesan test ke WebSocket',
+    description:
+      'Endpoint ini digunakan untuk mengirim pesan test ke WebSocket Gateway. Berguna untuk pengujian konektivitas dan penerimaan pesan di sisi client.',
+  })
   @HttpCode(HttpStatus.OK)
   sendTestMessage() {
     // const payload = {
@@ -159,14 +179,5 @@ export class SensorController {
     this.webSocketGateway.server.emit('telemetry:update', payload);
 
     return { success: true, message: 'Test message sent', payload };
-  }
-
-  // Called internally by worker after DB upsert to broadcast directly via WS (no Redis)
-  @Post('broadcast')
-  @Public()
-  @HttpCode(HttpStatus.OK)
-  broadcastFromWorker(@Body() payload: any) {
-    this.webSocketGateway.server.emit('telemetry:update', payload);
-    return { ok: true };
   }
 }

@@ -1,7 +1,7 @@
 export class PayloadTelemetryDto {
   device_id: string; //ID unik dari alat (biasanya UID, SN, atau IMEI).
   name: string; //Nama lokasi atau deskripsi alat.
-  device_type: string; //Jenis alat (AWLR, ARR, AWS, dll).
+  // device_type: string; //Jenis alat (AWLR, ARR, AWS, dll).
   device_status: string; //Status operasional alat (Online, Offline, Maintenance).
   timestamp: string; //Timestamp UTC ISO8601 saat terakhir mengirim data.
   last_battery: number; //Tegangan baterai terakhir yang dilaporkan (dalam Volt).
@@ -10,7 +10,7 @@ export class PayloadTelemetryDto {
   long: number; //Koordinat bujur lokasi alat.
   value: number;
   cctv_url?: string; //URL opsional untuk umpan CCTV terkait alat.
-  name_type?: string;
+  hidrologi_type?: string;
   das_id?: number | null;
   device_tag_id?: number[];
   sensors: Array<{
@@ -22,6 +22,8 @@ export class PayloadTelemetryDto {
     value_change?: number;
     criteria_id?: number;
     criteria_status?: number;
+    elevation?: number; //Elevasi opsional dari sensor (jika berlaku).
+    years_data?: number[]; //Array opsional berisi data historis tahunan (jika berlaku).
     debit?: number; //Debit opsional yang dihitung berdasarkan nilai sensor (jika berlaku).
   }>;
 }

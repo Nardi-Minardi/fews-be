@@ -4,9 +4,9 @@ import { DataMasterService } from './data-master.service';
 import { DataMasterRepository } from './data-master.repository';
 
 @Module({
-	imports: [],
-	controllers: [DataMasterController],
-	providers: [DataMasterService, DataMasterRepository],
-	exports: [DataMasterService],
+  imports: [],
+  controllers: [DataMasterController],
+  providers: [DataMasterService, DataMasterRepository],
+  exports: [DataMasterService],
 })
 export class DataMasterModule {}

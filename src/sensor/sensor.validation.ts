@@ -5,11 +5,10 @@ export class SensorValidation {
   static postTelemetrySchema = z.object({
     device_id: z.string().min(1, 'device_id harus diisi'),
     name: z.string().min(1, 'name harus diisi'),
-    device_type: z.enum(['AWLR', 'ARR', 'AWS'], {
-      message: 'device_type harus salah satu dari: AWLR, ARR, AWS',
-    }),
+    // device_type: z.string().min(1, 'device_type harus diisi'),
     device_status: z.enum(['Online', 'Offline', 'Maintenance'], {
-      message: 'device_status harus salah satu dari: Online, Offline, Maintenance',
+      message:
+        'device_status harus salah satu dari: Online, Offline, Maintenance',
     }),
     timestamp: z.string().refine((val) => dayjs(val).isValid(), {
       message: 'timestamp harus dalam format ISO8601 yang valid',
@@ -20,7 +19,7 @@ export class SensorValidation {
     long: z.number().min(-180).max(180, 'long harus antara -180 dan 180'),
     value: z.number(),
     cctv_url: z.string().optional(),
-    name_type: z.string().optional(),
+    hidrologi_type: z.string().optional(),
     sensors: z
       .array(
         z.object({
@@ -33,6 +32,8 @@ export class SensorValidation {
           criteria_id: z.number().optional(),
           criteria_status: z.number().optional(),
           debit: z.number().optional(),
+          elevation: z.number().optional(),
+          years_data: z.array(z.number()).optional(),
         }),
       )
       .min(1, 'harus ada minimal satu sensor'),

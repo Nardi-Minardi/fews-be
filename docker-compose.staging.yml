@@ -1,0 +1,69 @@
+version: '3.8'
+
+services:
+  fews-api:
+    build: .
+    image: nardiminardi/fews-api:latest
+    container_name: fews-api
+    restart: unless-stopped
+    ports:
+      - "${PORT:-3014}:${PORT:-3014}"
+    env_file:
+      - .env
+    environment:
+      - NODE_ENV=${NODE_ENV:-staging}
+      - PORT=${PORT:-3014}
+      - REDIS_HOST=fews-redis-master   # <- pastikan connect ke master
+    volumes:
+      - ./logs:/app/logs
+    depends_on:
+      - fews-redis-master
+    networks:
+      - fews-net
+
+  fews-worker:
+    build: .
+    image: nardiminardi/fews-api:latest
+    container_name: fews-worker
+    restart: unless-stopped
+    command: ["node", "dist/src/worker.main.js"]
+    env_file:
+      - .env
+    environment:
+      - NODE_ENV=${NODE_ENV:-staging}
+      - REDIS_HOST=fews-redis-master   # <- pastikan connect ke master
+    depends_on:
+      - fews-redis-master
+    networks:
+      - fews-net
+
+  # Redis Master
+  fews-redis-master:
+    image: redis:7-alpine
+    container_name: fews-redis-master
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_master_data:/data
+    networks:
+      - fews-net
+
+  # Optional Redis Replica / Slave (untuk read-heavy)
+  fews-redis-slave:
+    image: redis:7-alpine
+    container_name: fews-redis-slave
+    restart: unless-stopped
+    environment:
+      - REDIS_REPLICAOF=fews-redis-master 6379
+    networks:
+      - fews-net
+
+networks:
+  fews-net:
+    external: true
+
+volumes:
+  redis_master_data:
+  redis_slave_data:   # jika ingin persistence

@@ -13,10 +13,11 @@ services:
     environment:
       - NODE_ENV=${NODE_ENV:-staging}
       - PORT=${PORT:-3014}
+      - REDIS_HOST=fews-redis-master   # <- pastikan connect ke master
     volumes:
       - ./logs:/app/logs
     depends_on:
-      - fews-redis
+      - fews-redis-master
     networks:
       - fews-net
 
@@ -30,39 +31,39 @@ services:
       - .env
     environment:
       - NODE_ENV=${NODE_ENV:-staging}
+      - REDIS_HOST=fews-redis-master   # <- pastikan connect ke master
     depends_on:
-      - fews-redis
+      - fews-redis-master
     networks:
       - fews-net
 
-  fews-telemetry-bot:
-    image: nardiminardi/fews-telemetry-bot:latest
-    container_name: fews-telemetry-bot
-    restart: unless-stopped
-    env_file:
-      - .env
-    volumes:
-      - ./logs:/app/logs
-    depends_on:
-      - fews-redis
-    networks:
-      - fews-net
-
-  fews-redis:
+  # Redis Master
+  fews-redis-master:
     image: redis:7-alpine
-    container_name: fews-redis
+    container_name: fews-redis-master
     restart: unless-stopped
-    command: ["redis-server"]
+    command: ["redis-server", "--appendonly", "yes"]
     ports:
       - "6379:6379"
     volumes:
-      - redis_data:/data
+      - redis_master_data:/data
+    networks:
+      - fews-net
+
+  # Optional Redis Replica / Slave (untuk read-heavy)
+  fews-redis-slave:
+    image: redis:7-alpine
+    container_name: fews-redis-slave
+    restart: unless-stopped
+    environment:
+      - REDIS_REPLICAOF=fews-redis-master 6379
     networks:
       - fews-net
 
 networks:
   fews-net:
-    driver: bridge
+    external: true
 
 volumes:
-  redis_data:
+  redis_master_data:
+  redis_slave_data:   # jika ingin persistence

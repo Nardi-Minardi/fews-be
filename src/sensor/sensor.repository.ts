@@ -18,7 +18,7 @@ export class SensorRepository {
       long,
       last_battery,
       last_signal,
-      name_type,
+      hidrologi_type,
       das_id,
       device_tag_id,
     } = payload;
@@ -37,7 +37,7 @@ export class SensorRepository {
           long: long,
           last_battery: last_battery,
           last_signal: last_signal,
-          name_type: name_type,
+          hidrologi_type: hidrologi_type,
           das_id: new_das_id,
           device_tag_id:
             Array.isArray(device_tag_id) && device_tag_id.length
@@ -55,7 +55,7 @@ export class SensorRepository {
           long: long,
           last_battery: last_battery,
           last_signal: last_signal,
-          name_type: name_type,
+          hidrologi_type: hidrologi_type,
           das_id: new_das_id,
           device_tag_id:
             Array.isArray(device_tag_id) && device_tag_id.length
@@ -76,6 +76,8 @@ export class SensorRepository {
           update: {
             value: sensor.value,
             last_sending_data: new Date(timestamp),
+            elevation: sensor.elevation,
+            years_data: sensor.years_data,
             updated_at: new Date(),
           },
           create: {
@@ -90,6 +92,8 @@ export class SensorRepository {
             criteria_id: sensor.criteria_id,
             criteria_status: sensor.criteria_status,
             debit: sensor.debit,
+            elevation: sensor.elevation,
+            years_data: sensor.years_data,
             last_sending_data: new Date(timestamp),
           },
         }),
@@ -103,11 +107,46 @@ export class SensorRepository {
         device_name: device.name,
         lat: device.lat,
         long: device.long,
-        value: value,
+        value,
         last_sending_data: new Date(timestamp).toISOString(),
-        device_status: device_status,
-        name_type: name_type,
+        device_status,
+        hidrologi_type,
+        sensors: sensors.map((s) => ({
+          sensor_uid: s.sensor_id,
+          name: s.name,
+          unit: s.unit,
+          sensor_type: s.sensor_type,
+          value: s.value,
+          elevation: s.elevation,
+          years_data: s.years_data,
+        })),
       };
+    });
+  }
+
+  async getSensorsByDeviceUid(device_uid: string) {
+    const rows = await this.prisma.$queryRaw<any[]>`
+      SELECT 
+        s.id, s.sensor_uid, s.device_uid, s.name, s.unit, s.sensor_type,
+        s.criteria_id, s.criteria_status, s.value, s.value_change, s.debit,
+        s.last_sending_data, s.created_at, s.updated_at, s.elevation, s.years_data,
+        dvc.device_tag_id as device_tag_id
+      FROM tr_sensor s
+      LEFT JOIN m_device dvc ON dvc.device_uid = s.device_uid
+      WHERE s.device_uid = ${device_uid}
+      ORDER BY s.updated_at DESC
+    `;
+
+    return rows.map((s) => {
+      let abs_water_level: number | null = null;
+      if (s.sensor_type === 'water_level' && s.value != null) {
+        const val = Number(s.value);
+        const elev = Number(s.elevation ?? 0);
+        const unit = String(s.unit || '').toLowerCase();
+        const meters = unit === 'mm' ? val / 1000 : unit === 'cm' ? val / 100 : val;
+        abs_water_level = Math.round((elev + meters) * 100) / 100;
+      }
+      return { ...s, abs_water_level };
     });
   }
 }

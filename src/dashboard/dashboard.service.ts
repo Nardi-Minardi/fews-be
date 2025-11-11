@@ -135,4 +135,74 @@ export class DashboardService {
     const total_data = await this.dashboardRepository.countDevices();
     return { total_data, limit, offset, data };
   }
+
+  async getDeviceSensorsWithCriteria(device_uid: string) {
+    // Fetch raw sensors
+    const sensors = await this.dashboardRepository.getSensorsByDeviceUid(device_uid);
+    if (!sensors.length) return { sensors: [], criteria: [], total_data: 0 };
+
+    // Load all criteria masters (ARR / AWLR / AWS)
+    const masters = await this.prisma.m_criteria.findMany({ orderBy: { id: 'asc' } });
+
+    // Map by name and also resolve tag name→criteria list
+    const byName: Record<string, any> = {};
+    for (const m of masters) byName[m.name] = m;
+
+    const arrCriteria: any[] = Array.isArray(byName['ARR']?.criteria) ? (byName['ARR'].criteria as any[]) : [];
+    const awlrCriteria: any[] = Array.isArray(byName['AWLR']?.criteria) ? (byName['AWLR'].criteria as any[]) : [];
+
+    // Helper classify generic (value inside start/to range)
+    const classify = (criteriaArr: any[], val: number) => {
+      for (const c of criteriaArr) {
+        const startOk = val >= Number(c.start);
+        const toOk = c.to == null ? true : val <= Number(c.to);
+        if (startOk && toOk) return { level: c.level, name: c.name, color: c.color ?? null, icon: c.icon ?? null };
+      }
+      return null;
+    };
+
+  // Removed old rainfall-specific helper (now generic classify)
+
+    const mapped = sensors.map((s) => {
+      const valueNum = s.value != null ? Number(s.value) : null;
+      const unit = String(s.unit || '').toLowerCase();
+      const isRain = (s.sensor_type || '').toLowerCase().includes('rain') || s.name?.toLowerCase().includes('rain');
+      const isWater = (s.sensor_type || '').toLowerCase().includes('water') || s.name?.toLowerCase().includes('water');
+
+      // Compute elevation_water (for water level) from elevation + converted value
+      let elevation_water: number | null = null;
+      if (isWater && valueNum != null) {
+        const elev = s.elevation != null ? Number(s.elevation) : 0;
+        const meters = unit === 'mm' ? valueNum / 1000 : unit === 'cm' ? valueNum / 100 : valueNum;
+        elevation_water = Math.round((elev + meters) * 100) / 100;
+      }
+
+      // Determine which criteria set applies based on device_tag_id and sensor type
+      const tagIds: number[] = Array.isArray(s.device_tag_id) ? s.device_tag_id : [];
+      // Resolve tag names from masters (masters store device_tag_id but we only have tag ids in sensor row)
+      let criteriaMaster: any = null;
+      if (isRain) criteriaMaster = byName['ARR'] || null;
+      else if (isWater) criteriaMaster = byName['AWLR'] || null;
+      else criteriaMaster = null; // AWS or others without classification
+
+  let classification: { level: number; name: string; color: string | null; icon: string | null } | null = null;
+      if (criteriaMaster?.criteria && valueNum != null) {
+        const cArr = criteriaMaster.criteria as any[];
+        classification = classify(cArr, valueNum);
+      }
+
+      return {
+        ...s,
+        value: valueNum, // ensure numeric
+        elevation_water,
+        criteria_master: criteriaMaster ? { id: criteriaMaster.id, name: criteriaMaster.name } : null,
+        criteria_status: classification?.level ?? null,
+        criteria_label: classification?.name ?? (criteriaMaster ? '-' : '-'),
+        criteria_color: classification?.color ?? (criteriaMaster ? '#CCCCCC' : '#CCCCCC'),
+        criteria_icon: classification?.icon ?? null,
+      };
+    });
+
+  return { sensors: mapped, criteria: masters, total_data: mapped.length };
+  }
 }

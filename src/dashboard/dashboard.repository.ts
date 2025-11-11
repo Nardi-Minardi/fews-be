@@ -73,7 +73,7 @@ export class DashboardRepository {
     const keyword = `%${cleanSearch.toLowerCase()}%`;
     const isSearchEmpty = cleanSearch === '';
 
-    // 🔹 Query utama
+    //Query utama
     return this.prisma.$queryRaw`
       SELECT
         dvc.id,
@@ -83,7 +83,7 @@ export class DashboardRepository {
         dvc.sungai_id,
         dvc.owner,
         dvc.name AS device_name,
-        dvc.name_type,
+        dvc.hidrologi_type,
         dvc.device_status,
         dvc.last_sending_data,
         dvc.last_battery, 
@@ -134,5 +134,35 @@ export class DashboardRepository {
     `;
 
     return result[0]?.count ?? 0;
+  }
+
+  async getSensorsByDeviceUid(device_uid: string) {
+    const rows = await this.prisma.$queryRaw<any[]>`
+      SELECT 
+        s.id, s.sensor_uid, s.device_uid, s.name, s.unit, s.sensor_type,
+        s.criteria_id, s.criteria_status, s.value, s.value_change, s.debit,
+        s.last_sending_data, s.created_at, s.updated_at, s.elevation, s.years_data,
+        dvc.device_tag_id AS device_tag_id
+      FROM tr_sensor s
+      LEFT JOIN m_device dvc ON dvc.device_uid = s.device_uid
+      WHERE s.device_uid = ${device_uid}
+      ORDER BY s.updated_at DESC
+    `;
+
+    // Compute absolute water level for water_level sensors
+    const mapped = rows.map((s) => {
+      let abs_water_level: number | null = null;
+      if (s.sensor_type === 'water_level' && s.value != null) {
+        const val = Number(s.value);
+        const elev = Number(s.elevation ?? 0);
+        const unit = String(s.unit || '').toLowerCase();
+        const meters =
+          unit === 'mm' ? val / 1000 : unit === 'cm' ? val / 100 : val;
+        abs_water_level = Math.round((elev + meters) * 100) / 100;
+      }
+      return { ...s, abs_water_level };
+    });
+
+    return mapped;
   }
 }

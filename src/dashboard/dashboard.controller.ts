@@ -1,4 +1,11 @@
-import { Controller, Get, Query, HttpStatus, HttpCode } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Query,
+  HttpStatus,
+  HttpCode,
+  Param,
+} from '@nestjs/common';
 import {
   ApiTags,
   ApiOperation,
@@ -12,6 +19,7 @@ import { Public } from 'src/common/decorators/public.decorator';
 import { DashboardService } from './dashboard.service';
 import { PrismaService } from 'src/common/prisma.service';
 import { RedisCache } from 'src/common/decorators/redis-cache.decorator';
+import { WebResponse } from 'src/common/web.response';
 
 @ApiTags('Dashboard')
 @Controller('dashboard')
@@ -151,5 +159,35 @@ export class DashboardController {
       message: 'Success',
       ...result,
     };
+  }
+
+  // Device sensors endpoints
+  @Get(':device_uid/sensors')
+  @Public()
+  @ApiOperation({
+    summary: 'Get Device Sensors with Criteria',
+    description:
+      'Mengambil daftar sensor dari sebuah device beserta kriteria penilaian (misal level bahaya untuk sensor curah hujan).',
+  })
+  @ApiParam({
+    name: 'device_uid',
+    required: true,
+    description: 'Unique ID dari device',
+    example: 'DEVICE-001',
+  })
+  @HttpCode(HttpStatus.OK)
+  async getDeviceSensors(
+    @Param('device_uid') device_uid: string,
+  ): Promise<WebResponse<any>> {
+    const { sensors, criteria, total_data } =
+      await this.dashboardService.getDeviceSensorsWithCriteria(device_uid);
+    return {
+      status_code: 200,
+      message: 'success',
+      offset: 0,
+      total_data,
+      data: criteria,
+      sensors,
+    } as any;
   }
 }
