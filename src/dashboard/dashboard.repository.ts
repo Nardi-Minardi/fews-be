@@ -137,6 +137,73 @@ export class DashboardRepository {
     return result[0]?.count ?? 0;
   }
 
+  async listDevicesTable(
+    limit = 50,
+    offset = 0,
+    search?: string,
+    provinsi_code?: string,
+    kab_kota_code?: string,
+    kecamatan_code?: string,
+    kel_des_code?: string,
+    device_tag_id?: number[],
+  ) {
+    const cleanSearch =
+      search?.trim().replace(/^[“”"'']+|[“”"'']+$/g, '') ?? '';
+    const keyword = `%${cleanSearch.toLowerCase()}%`;
+    const isSearchEmpty = cleanSearch === '';
+
+    //Query utama
+    const data = await this.prisma.$queryRaw<any[]>`
+      SELECT 
+        t.id::text AS log_id,
+        t.sensor_uid,
+        t.device_uid,
+        t.value as sensor_value,
+        t.unit as sensor_unit,
+        t.last_sending_data as sensor_last_sending_data,
+        t.name as sensor_name,
+        s.sensor_type,
+        dvc.device_tag_id,
+        dvc.name AS device_name,
+        dvc.hidrologi_type,
+        dvc.device_status,
+        dvc.lat,
+        dvc.long,
+        dvc.das_name
+      FROM tr_sensor_log t
+      LEFT JOIN m_sensor s ON s.sensor_uid = t.sensor_uid
+      LEFT JOIN m_device dvc ON dvc.device_uid = t.device_uid
+      WHERE
+        (
+          ${isSearchEmpty} OR
+          LOWER(t.name) LIKE ${keyword} -- sensor_name
+          OR LOWER(dvc.name) LIKE ${keyword} -- device_name
+          OR LOWER(dvc.das_name) LIKE ${keyword} -- das_name
+          OR LOWER(dvc.hidrologi_type) LIKE ${keyword} -- hidrologi_type
+        )
+        AND 
+        (
+          ${!device_tag_id || device_tag_id.length === 0}
+          OR dvc.device_tag_id && ${device_tag_id}::int[]
+        )
+      ORDER BY t.last_sending_data DESC
+      LIMIT ${limit} OFFSET ${offset};
+    `;
+
+    return data;
+  }
+
+  async countDevicesTable(search?: string) {
+    // Always return total count of tr_sensor_log (unfiltered),
+    // so FE can show overall total even when search is applied.
+    const result: Array<{ count: number }> = await this.prisma.$queryRaw`
+      SELECT COUNT(*)::int AS count
+      FROM tr_sensor_log t
+    `;
+
+    return result[0]?.count ?? 0;
+  }
+
   async getSensorsByDeviceUid(device_uid: string) {
     const rows = await this.prisma.$queryRaw<any[]>`
       SELECT 
@@ -218,7 +285,10 @@ export class DashboardRepository {
       return {
         ...s,
         abs_water_level,
-        last_sending_data: toLocalTimeString(s.last_sending_data, 'Asia/Jakarta'),
+        last_sending_data: toLocalTimeString(
+          s.last_sending_data,
+          'Asia/Jakarta',
+        ),
         created_at: toLocalTimeString(s.last_sending_data, 'Asia/Jakarta'),
         updated_at: toLocalTimeString(s.last_sending_data, 'Asia/Jakarta'),
       };

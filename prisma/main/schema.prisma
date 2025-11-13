@@ -125,7 +125,7 @@ model m_criteria {
 }
 
 model tr_sensor_log {
-  id                Int       @id @default(autoincrement())
+  id                BigInt    @id @default(autoincrement())
   device_uid        String    @db.VarChar(255)
   sensor_uid        String?   @db.VarChar(255)
   name              String    @db.VarChar(255)
