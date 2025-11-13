@@ -2,18 +2,16 @@ import { PrismaClient } from '.prisma/main-client/client';
 
 const prisma = new PrismaClient();
 
-// Mapping hidrologi_type → device_tag_id
 const TAG_MAP = {
   'CURAH HUJAN': 1, // ARR
   'DUGA AIR': 2, // AWLR
-  'KLIMATOLOGI': 3, // AWS
+  KLIMATOLOGI: 3, // AWS
 };
 
 async function main() {
   console.log('[seed-device] starting...');
 
   try {
-    // 1️⃣ Ambil data dari API eksternal
     const res = await fetch(
       'https://sihka.dev-tunnels.id/api/v1/pos/cimancis_pemali',
     );
@@ -24,22 +22,33 @@ async function main() {
 
     console.log(`[seed-device] fetched ${data.length} items`);
 
-    // 2️⃣ Loop tiap item dan upsert ke m_device
     for (const item of data) {
       const tagId = TAG_MAP[item.hidrologi_type?.toUpperCase()] || null;
+      const device_status = Math.random() < 0.9 ? 'Online' : 'Offline';
 
-      // Dummy latitude & longitude (sekitar Jawa Tengah)
-      const lat =
-        typeof item.lat === 'number' ? item.lat : -7.0 + Math.random() * 0.5;
-      const long =
-        typeof item.long === 'number' ? item.long : 110.0 + Math.random() * 0.5;
+      //find das_id in table m_das by das_name include matching das_name
+      let das = await prisma.m_das.findFirst({
+        where: {
+          name: { contains: item.das_name || '', mode: 'insensitive' },
+        },
+      });
+      let das_id = das ? das.id : null;
 
-      // Dummy last_sending_data (1–60 menit lalu)
-      const minutesAgo = Math.floor(Math.random() * 60) + 1;
-      const lastSending = new Date(Date.now() - minutesAgo * 60 * 1000);
+      // parsing coordinate
+      let lat: number | null = null;
+      let long: number | null = null;
+      const coord = String(item.coordinate || '');
+      const parts = coord.split(',');
+      if (parts.length === 2) {
+        const parsedLong = parseFloat(parts[0]);
+        const parsedLat = parseFloat(parts[1]);
+        if (!isNaN(parsedLat)) lat = parsedLat;
+        if (!isNaN(parsedLong)) long = parsedLong;
+      }
 
       try {
-        await prisma.m_device.upsert({
+        // 🔹 Upsert ke m_device
+        const device = await prisma.m_device.upsert({
           where: { device_uid: item.id },
           update: {
             name: item.name,
@@ -48,7 +57,10 @@ async function main() {
             device_tag_id: tagId !== null ? [tagId] : undefined,
             lat,
             long,
-            last_sending_data: lastSending,
+            last_sending_data: null,
+            device_status,
+            das_id,
+            das_name: item.das_name || null,
             updated_at: new Date(),
           },
           create: {
@@ -59,17 +71,60 @@ async function main() {
             device_tag_id: tagId !== null ? [tagId] : undefined,
             lat,
             long,
-            last_sending_data: lastSending,
+            last_sending_data: null,
+            device_status,
+            das_id,
+            das_name: item.das_name || null,
             created_at: new Date(),
             updated_at: new Date(),
           },
         });
 
         console.log(
-          `[seed-device] upserted ${item.id} (${item.name}) tag=${tagId}, lat=${lat.toFixed(
-            5,
-          )}, long=${long.toFixed(5)}, last_sending=${lastSending.toISOString()}`,
+          `[seed-device] upserted device: ${item.id} (${item.name}) → id=${device.id}`,
         );
+
+        // 🔹 Insert sensors (m_sensor)
+        if (Array.isArray(item.sensor)) {
+          for (const s of item.sensor) {
+            try {
+              await prisma.m_sensor.upsert({
+                where: { sensor_uid: s.id },
+                update: {
+                  name: s.name,
+                  sensor_type: s.type,
+                  sensor_key: String(s.sensor_key),
+                  device_uid: item.id,
+                  device_id: device.id, // ✅ ambil dari hasil upsert device
+                  unit: s.unit || '',
+                  years_data: s.years_data || [],
+                  updated_at: new Date(),
+                },
+                create: {
+                  sensor_uid: s.id,
+                  name: s.name,
+                  sensor_type: s.type,
+                  sensor_key: String(s.sensor_key),
+                  device_uid: item.id,
+                  device_id: device.id, // ✅ ambil dari hasil upsert device
+                  unit: s.unit || '',
+                  years_data: s.years_data || [],
+                  created_at: new Date(),
+                  updated_at: new Date(),
+                },
+              });
+
+              console.log(
+                `  ↳ [sensor] ${s.id} (${s.name}) type=${s.type} key=${s.sensor_key}`,
+              );
+            } catch (sensorErr: any) {
+              console.error(
+                `  ⚠️ [sensor] gagal insert ${s.id}:`,
+                sensorErr.message || sensorErr,
+              );
+            }
+          }
+        }
       } catch (err: any) {
         console.error(
           `[seed-device] failed for ${item.id}:`,

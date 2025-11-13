@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { WilayahFilter } from './dashboard.service';
 import { PrismaService } from 'src/common/prisma.service';
+import { toLocalTimeString } from 'src/common/utils/timeLocal';
 
 @Injectable()
 export class DashboardRepository {
@@ -143,7 +144,7 @@ export class DashboardRepository {
         s.criteria_id, s.criteria_status, s.value, s.value_change, s.debit,
         s.last_sending_data, s.created_at, s.updated_at, s.elevation, s.years_data,
         dvc.device_tag_id AS device_tag_id
-      FROM tr_sensor s
+      FROM tr_sensor_log s
       LEFT JOIN m_device dvc ON dvc.device_uid = s.device_uid
       WHERE s.device_uid = ${device_uid}
       ORDER BY s.updated_at DESC
@@ -161,6 +162,66 @@ export class DashboardRepository {
         abs_water_level = Math.round((elev + meters) * 100) / 100;
       }
       return { ...s, abs_water_level };
+    });
+
+    return mapped;
+  }
+
+  async getSensorsByDeviceUidToday(device_uid: string) {
+    // Ambil sensor dari log hari ini UTC
+    const rows = await this.prisma.$queryRaw<any[]>`
+    SELECT 
+      s.id, s.sensor_uid, s.device_uid, s.name, s.unit, s.sensor_type,
+      s.criteria_id, s.criteria_status, s.value, s.value_change, s.debit,
+      s.last_sending_data, s.created_at, s.updated_at, s.elevation, s.years_data,
+      dvc.device_tag_id AS device_tag_id
+    FROM tr_sensor_log s
+    LEFT JOIN m_device dvc ON dvc.device_uid = s.device_uid
+    WHERE s.device_uid = ${device_uid}
+      AND s.last_sending_data >= timezone('UTC', CURRENT_DATE)
+    ORDER BY s.last_sending_data ASC
+  `;
+
+    const mapped = rows.map((s) => {
+      let abs_water_level: number | null = null;
+      if (s.sensor_type === 'water_level' && s.value != null) {
+        const val = Number(s.value);
+        const elev = Number(s.elevation ?? 0);
+        const unit = String(s.unit || '').toLowerCase();
+        const meters =
+          unit === 'mm' ? val / 1000 : unit === 'cm' ? val / 100 : val;
+        abs_water_level = Math.round((elev + meters) * 100) / 100;
+      }
+
+      // Konversi UTC ke WIB (UTC+7)
+      const last_sending_wib = new Date(
+        new Date(s.last_sending_data).getTime() + 7 * 60 * 60 * 1000,
+      )
+        .toISOString()
+        .replace('T', ' ')
+        .substring(0, 19); // format: YYYY-MM-DD HH:mm:ss
+
+      const created_at_wib = new Date(
+        new Date(s.created_at).getTime() + 7 * 60 * 60 * 1000,
+      )
+        .toISOString()
+        .replace('T', ' ')
+        .substring(0, 19); // format: YYYY-MM-DD HH:mm:ss
+
+      const updated_at_wib = new Date(
+        new Date(s.updated_at).getTime() + 7 * 60 * 60 * 1000,
+      )
+        .toISOString()
+        .replace('T', ' ')
+        .substring(0, 19); // format: YYYY-MM-DD HH:mm:ss
+
+      return {
+        ...s,
+        abs_water_level,
+        last_sending_data: toLocalTimeString(s.last_sending_data, 'Asia/Jakarta'),
+        created_at: toLocalTimeString(s.last_sending_data, 'Asia/Jakarta'),
+        updated_at: toLocalTimeString(s.last_sending_data, 'Asia/Jakarta'),
+      };
     });
 
     return mapped;

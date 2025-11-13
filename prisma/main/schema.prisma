@@ -105,6 +105,7 @@ model m_device {
   value             Decimal?  @db.Decimal(10, 2)
   created_at        DateTime? @default(now()) @db.Timestamp(6)
   updated_at        DateTime? @default(now()) @db.Timestamp(6)
+  das_name          String?   @db.VarChar(255)
 }
 
 model m_device_tag {
@@ -123,10 +124,29 @@ model m_criteria {
   updated_at    DateTime? @default(now()) @db.Timestamp(6)
 }
 
-model tr_sensor {
+model tr_sensor_log {
   id                Int       @id @default(autoincrement())
-  device_id         Int
+  device_uid        String    @db.VarChar(255)
   sensor_uid        String?   @db.VarChar(255)
+  name              String    @db.VarChar(255)
+  unit              String?   @db.VarChar(100)
+  sensor_type       String?   @db.VarChar(255)
+  criteria_id       Int?
+  criteria_status   Int?
+  value             Decimal?  @db.Decimal(10, 2)
+  value_change      Decimal?  @db.Decimal(10, 2)
+  debit             Decimal?  @db.Decimal(10, 2)
+  elevation         Decimal?  @db.Decimal(10, 2)
+  years_data        Int[]
+  last_sending_data DateTime? @db.Timestamp(6)
+  created_at        DateTime? @default(now()) @db.Timestamp(6)
+  updated_at        DateTime? @default(now()) @db.Timestamp(6)
+}
+
+model m_sensor {
+  id                Int       @id @default(autoincrement())
+  device_id         Int?
+  sensor_uid        String?   @unique(map: "m_sensor_sensor_uid_unique") @db.VarChar(255)
   device_uid        String?   @db.VarChar(255)
   name              String    @db.VarChar(255)
   unit              String    @db.VarChar(100)
@@ -141,6 +161,7 @@ model tr_sensor {
   elevation         Decimal?  @db.Decimal(10, 2)
   created_at        DateTime? @default(now()) @db.Timestamp(6)
   updated_at        DateTime? @default(now()) @db.Timestamp(6)
+  sensor_key        String?   @db.VarChar(100)
 
   @@unique([device_uid, sensor_uid], map: "device_uid_sensor_uid")
 }

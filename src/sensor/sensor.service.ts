@@ -20,60 +20,39 @@ export class SensorService {
     private readonly prisma: PrismaService,
   ) {}
 
-  async storeSensor(request: any): Promise<any> {
-    this.logger.debug('storing sensor data', {
-      request,
-    });
+ async storeSensor(request: any): Promise<any> {
+    this.logger.debug('storing sensor data#1', { request });
 
     const createRequest = this.validationService.validate(
       SensorValidation.postTelemetrySchema,
       request,
     );
 
-    // Resolve das based on point (lat, long)
-    let das: any = null;
-    try {
-      das = await this.dasRepository.findDasByPointDetailed(
-        createRequest.lat,
-        createRequest.long,
-      );
-    } catch (e) {
-      this.logger.warn('Failed to resolve das from lat/long', {
-        error: (e as any)?.message,
-      });
-    }
-
-
     const createData = {
       device_id: createRequest.device_id,
       name: createRequest.name,
-      device_status: createRequest.device_status,
-      timestamp: createRequest.timestamp,
-      last_battery: createRequest.last_battery,
-      last_signal: createRequest.last_signal,
-      lat: createRequest.lat,
-      long: createRequest.long,
-      das_id: das?.id ?? null,
-      value: createRequest.value,
-      cctv_url: createRequest.cctv_url,
-      sensors: createRequest.sensors,
+      owner: createRequest.owner,
       hidrologi_type: createRequest.hidrologi_type,
+      sensors: createRequest.sensors,
     };
 
-    const result = await this.sensorRepository.upsertSensors(createData);
+    this.logger.debug('storing sensor data#2', { createData });
 
-    return result;
+    return this.sensorRepository.insertSensorsLog(createData);
   }
 
   // Merge sensors with criteria master to classify sensors into levels
   async getSensorsWithCriteriaByDeviceUid(device_uid: string) {
-    const sensors = await this.sensorRepository.getSensorsByDeviceUid(device_uid);
+    const sensors =
+      await this.sensorRepository.getSensorsByDeviceUid(device_uid);
     if (!sensors.length) {
       return { total: 0, sensors: [], criteria: [] };
     }
 
     // Load all criteria masters
-    const masters = await this.prisma.m_criteria.findMany({ orderBy: { id: 'asc' } });
+    const masters = await this.prisma.m_criteria.findMany({
+      orderBy: { id: 'asc' },
+    });
     const byTagId = new Map<number, any>();
     for (const m of masters) {
       if (m.device_tag_id != null) byTagId.set(m.device_tag_id, m);
@@ -85,18 +64,34 @@ export class SensorService {
       for (const c of criteriaArr) {
         const startOk = val >= Number(c.start);
         const toOk = c.to == null ? true : val <= Number(c.to);
-        if (startOk && toOk) return { level: c.level, name: c.name, color: c.color ?? null, icon: c.icon ?? null };
+        if (startOk && toOk)
+          return {
+            level: c.level,
+            name: c.name,
+            color: c.color ?? null,
+            icon: c.icon ?? null,
+          };
       }
       return null;
     };
 
     const enriched = sensors.map((s: any) => {
-      const tagIds: number[] = Array.isArray(s.device_tag_id) ? s.device_tag_id : [];
+      const tagIds: number[] = Array.isArray(s.device_tag_id)
+        ? s.device_tag_id
+        : [];
       const tagId = tagIds[0];
       let criteriaMaster: any = tagId != null ? byTagId.get(tagId) : undefined;
       let criteriaMatch: any = null;
-      if (criteriaMaster && s.value != null && (s.sensor_type?.toLowerCase() === 'rainfall' || s.name?.toLowerCase().includes('rain'))) {
-        criteriaMatch = classify(criteriaMaster.criteria as any[], Number(s.value));
+      if (
+        criteriaMaster &&
+        s.value != null &&
+        (s.sensor_type?.toLowerCase() === 'rainfall' ||
+          s.name?.toLowerCase().includes('rain'))
+      ) {
+        criteriaMatch = classify(
+          criteriaMaster.criteria as any[],
+          Number(s.value),
+        );
       }
       return {
         ...s,

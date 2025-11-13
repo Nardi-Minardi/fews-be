@@ -91,19 +91,6 @@ export class SensorController {
           ],
         },
       },
-      required: [
-        'device_id',
-        'name',
-        'device_type',
-        'device_status',
-        'timestamp',
-        'last_battery',
-        'last_signal',
-        'lat',
-        'long',
-        'value',
-        'sensors',
-      ],
     },
   })
   async receiveTelemetry(@Body() request): Promise<WebResponse<any>> {
