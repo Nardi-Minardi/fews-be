@@ -153,52 +153,63 @@ export class DashboardRepository {
     const isSearchEmpty = cleanSearch === '';
 
     //Query utama
-    const data = await this.prisma.$queryRaw<any[]>`
-      SELECT 
-        t.id::text AS log_id,
-        t.sensor_uid,
-        t.device_uid,
-        t.value as sensor_value,
-        t.unit as sensor_unit,
-        t.last_sending_data as sensor_last_sending_data,
-        t.name as sensor_name,
-        s.sensor_type,
+    return this.prisma.$queryRaw`
+      SELECT
+        dvc.id,
+        dvc.device_uid,
         dvc.device_tag_id,
+        dvc.das_id,
+        dvc.sungai_id,
+        dvc.owner,
         dvc.name AS device_name,
         dvc.hidrologi_type,
         dvc.device_status,
+        dvc.last_sending_data,
+        dvc.last_battery, 
+        dvc.last_signal,
         dvc.lat,
         dvc.long,
-        dvc.das_name
-      FROM tr_sensor_log t
-      LEFT JOIN m_sensor s ON s.sensor_uid = t.sensor_uid
-      LEFT JOIN m_device dvc ON dvc.device_uid = t.device_uid
+        dvc.cctv_url,
+        dvc.value,
+        dvc.created_at,
+        dvc.updated_at,
+        d.name AS das_name
+       
+      FROM m_device dvc
+      LEFT JOIN m_das d ON d.id = dvc.das_id
+     
       WHERE
         (
           ${isSearchEmpty} OR
-          LOWER(t.name) LIKE ${keyword} -- sensor_name
-          OR LOWER(dvc.name) LIKE ${keyword} -- device_name
-          OR LOWER(dvc.das_name) LIKE ${keyword} -- das_name
-          OR LOWER(dvc.hidrologi_type) LIKE ${keyword} -- hidrologi_type
+          LOWER(dvc.name) LIKE ${keyword} OR
+          LOWER(d.name) LIKE ${keyword}
         )
+       
         AND 
         (
           ${!device_tag_id || device_tag_id.length === 0}
           OR dvc.device_tag_id && ${device_tag_id}::int[]
         )
-      ORDER BY t.last_sending_data DESC
+      ORDER BY dvc.updated_at DESC
       LIMIT ${limit} OFFSET ${offset};
     `;
-
-    return data;
   }
 
   async countDevicesTable(search?: string) {
-    // Always return total count of tr_sensor_log (unfiltered),
-    // so FE can show overall total even when search is applied.
+    const cleanSearch =
+      search?.trim().replace(/^[“”"'']+|[“”"'']+$/g, '') ?? '';
+    const keyword = `%${cleanSearch.toLowerCase()}%`;
+
     const result: Array<{ count: number }> = await this.prisma.$queryRaw`
       SELECT COUNT(*)::int AS count
-      FROM tr_sensor_log t
+      FROM m_device dvc
+      LEFT JOIN m_das d ON d.id = dvc.das_id
+      -- WHERE (
+      --   ${cleanSearch === ''} OR
+      --   LOWER(dvc.name) LIKE ${keyword} OR
+      --   LOWER(d.name) LIKE ${keyword} OR
+      --   LOWER(p.name) LIKE ${keyword}
+      -- );
     `;
 
     return result[0]?.count ?? 0;
@@ -237,17 +248,18 @@ export class DashboardRepository {
   async getSensorsByDeviceUidToday(device_uid: string) {
     // Ambil sensor dari log hari ini UTC
     const rows = await this.prisma.$queryRaw<any[]>`
-    SELECT 
-      s.id, s.sensor_uid, s.device_uid, s.name, s.unit, s.sensor_type,
-      s.criteria_id, s.criteria_status, s.value, s.value_change, s.debit,
-      s.last_sending_data, s.created_at, s.updated_at, s.elevation, s.years_data,
-      dvc.device_tag_id AS device_tag_id
-    FROM tr_sensor_log s
-    LEFT JOIN m_device dvc ON dvc.device_uid = s.device_uid
-    WHERE s.device_uid = ${device_uid}
-      AND s.last_sending_data >= timezone('UTC', CURRENT_DATE)
-    ORDER BY s.last_sending_data ASC
-  `;
+      SELECT 
+        sl.id::text, sl.sensor_uid, sl.device_uid, sl.name, sl.unit, sl.sensor_type,
+        sl.criteria_id, sl.criteria_status, sl.value, sl.value_change, sl.debit,
+        sl.last_sending_data, sl.created_at, sl.updated_at, sl.elevation, sl.years_data,
+        dvc.device_tag_id AS device_tag_id, s.sensor_type AS sensor_type
+      FROM tr_sensor_log sl
+      LEFT JOIN m_device dvc ON dvc.device_uid = sl.device_uid
+      LEFT JOIN m_sensor s ON sl.sensor_uid = s.sensor_uid
+      WHERE sl.device_uid = ${device_uid}
+      --AND sl.last_sending_data >= timezone('UTC', CURRENT_DATE)
+      ORDER BY sl.last_sending_data ASC
+    `;
 
     const mapped = rows.map((s) => {
       let abs_water_level: number | null = null;
