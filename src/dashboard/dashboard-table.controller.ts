@@ -35,7 +35,7 @@ export class DashboardTableController {
   @HttpCode(HttpStatus.OK)
   @Public()
   @ApiOperation({
-    summary: 'Get Devices list',
+    summary: 'Get Devices List',
     description:
       'Mengambil daftar device (ARR/AWLR/AWS) beserta status dan sensor terakhir, dengan pagination.',
   })
@@ -56,10 +56,14 @@ export class DashboardTableController {
     @Query('kecamatan_code') kecamatan_code?: string,
     @Query('kel_des_code') kel_des_code?: string,
     @Query('device_tag_id') device_tag_id?: any,
+    @Query('instansi_id') instansi_id?: string,
+    @Query('hidrologi_type') hidrologi_type?: string,
   ) {
     const parsedLimit = Number(limit);
     const parsedOffset = Number(offset);
+    const parsedInstansiId = instansi_id ? Number(instansi_id) : null;
     if (search === '""' || search === "''") search = '';
+    if (hidrologi_type === '""' || hidrologi_type === "''") hidrologi_type = '';
     let parsedDeviceTagIds: number[] = [];
     if (device_tag_id) {
       try {
@@ -87,11 +91,41 @@ export class DashboardTableController {
       kecamatan_code,
       kel_des_code,
       parsedDeviceTagIds,
+      parsedInstansiId,
+      hidrologi_type,
     );
     return {
       status_code: HttpStatus.OK,
       message: 'Success',
       ...result,
+    };
+  }
+
+  // Hidrologi Type endpoints
+  @Get('devices/hidrologi-types')
+  @HttpCode(HttpStatus.OK)
+  @Public()
+  @RedisCache('fews-be-dashboard-devices-hidrologi-types-list', 5)
+  @ApiOperation({
+    summary: 'Get Hidrologi Types List',
+    description:
+      'Mengambil daftar tipe hidrologi dari device (ARR/AWLR/AWS) yang tersedia.',
+  })
+  async getDevicesHidrologiTypes() {
+    const data = await this.prismaService.m_device.findMany({
+      distinct: ['hidrologi_type'],
+      select: {
+        hidrologi_type: true,
+      },
+      orderBy: {
+        hidrologi_type: 'asc',
+      },
+    });
+
+    return {
+      status_code: HttpStatus.OK,
+      message: 'Success',
+      data,
     };
   }
 }

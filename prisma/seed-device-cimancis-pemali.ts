@@ -8,6 +8,49 @@ const TAG_MAP = {
   KLIMATOLOGI: 3, // AWS
 };
 
+// ======================================================
+// 🔹 Cari atau buat instansi berdasarkan pengelola_name
+// ======================================================
+async function findOrCreateInstansi(name: string | null) {
+  if (!name) return null;
+
+  // cek data instansi berdasarkan nama
+  let instansi = await prisma.m_instansi.findFirst({
+    where: {
+      name: { equals: name, mode: 'insensitive' },
+    },
+  });
+
+  // jika sudah ada → gunakan
+  if (instansi) {
+    console.log(`   [instansi] exists: ${name} → id=${instansi.id}`);
+    return instansi.id;
+  }
+
+  // jika belum ada → buat baru
+  instansi = await prisma.m_instansi.create({
+    data: {
+      name,
+      no_telepon: null,
+      email: null,
+      provinsi_code: null,
+      kab_kota_code: null,
+      kecamatan_code: null,
+      kel_des_code: null,
+      alamat: null,
+      kode_pos: null,
+      created_at: new Date(),
+      updated_at: new Date(),
+    },
+  });
+
+  console.log(`   [instinisi] created: ${name} → id=${instansi.id}`);
+  return instansi.id;
+}
+
+// ======================================================
+// 🔹 MAIN SEED SCRIPT
+// ======================================================
 async function main() {
   console.log('[seed-device] starting...');
 
@@ -26,7 +69,16 @@ async function main() {
       const tagId = TAG_MAP[item.hidrologi_type?.toUpperCase()] || null;
       const device_status = Math.random() < 0.9 ? 'Online' : 'Offline';
 
-      //find das_id in table m_das by das_name include matching das_name
+      // ======================================================
+      // 🔍 DAPATKAN INSTANSI ID
+      // ======================================================
+      const instansi_id = await findOrCreateInstansi(
+        item.pengelola_name || null,
+      );
+
+      // ======================================================
+      // 🔍 Cari DAS
+      // ======================================================
       let das = await prisma.m_das.findFirst({
         where: {
           name: { contains: item.das_name || '', mode: 'insensitive' },
@@ -34,7 +86,9 @@ async function main() {
       });
       let das_id = das ? das.id : null;
 
-      // parsing coordinate
+      // ======================================================
+      // 🔍 Parsing koordinat
+      // ======================================================
       let lat: number | null = null;
       let long: number | null = null;
       const coord = String(item.coordinate || '');
@@ -47,7 +101,9 @@ async function main() {
       }
 
       try {
-        // 🔹 Upsert ke m_device
+        // ======================================================
+        // 🔹 UPSERT m_device
+        // ======================================================
         const device = await prisma.m_device.upsert({
           where: { device_uid: item.id },
           update: {
@@ -61,6 +117,7 @@ async function main() {
             device_status,
             das_id,
             das_name: item.das_name || null,
+            instansi_id, // <= tambahkan di update
             updated_at: new Date(),
           },
           create: {
@@ -75,6 +132,7 @@ async function main() {
             device_status,
             das_id,
             das_name: item.das_name || null,
+            instansi_id, // <= tambahkan di create
             created_at: new Date(),
             updated_at: new Date(),
           },
@@ -84,7 +142,9 @@ async function main() {
           `[seed-device] upserted device: ${item.id} (${item.name}) → id=${device.id}`,
         );
 
-        // 🔹 Insert sensors (m_sensor)
+        // ======================================================
+        // 🔹 UPSERT SENSOR
+        // ======================================================
         if (Array.isArray(item.sensor)) {
           for (const s of item.sensor) {
             try {
@@ -95,7 +155,7 @@ async function main() {
                   sensor_type: s.type,
                   sensor_key: String(s.sensor_key),
                   device_uid: item.id,
-                  device_id: device.id, // ✅ ambil dari hasil upsert device
+                  device_id: device.id,
                   unit: s.unit || '',
                   years_data: s.years_data || [],
                   updated_at: new Date(),
@@ -106,7 +166,7 @@ async function main() {
                   sensor_type: s.type,
                   sensor_key: String(s.sensor_key),
                   device_uid: item.id,
-                  device_id: device.id, // ✅ ambil dari hasil upsert device
+                  device_id: device.id,
                   unit: s.unit || '',
                   years_data: s.years_data || [],
                   created_at: new Date(),

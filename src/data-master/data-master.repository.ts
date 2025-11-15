@@ -100,4 +100,23 @@ export class DataMasterRepository {
     ]);
     return { data, total };
   }
+
+  //list master criteria
+  async listInstansi(search?: string, page?: number, limit?: number) {
+    const skip = ((page || 1) - 1) * (limit || 50);
+    const where: any = {};
+    if (search) {
+      where.name = { contains: search, mode: 'insensitive' };
+    }
+    const [data, total] = await Promise.all([
+      this.prisma.m_instansi.findMany({
+        where,
+        skip,
+        take: limit || 50,
+        orderBy: { name: 'asc' },
+      }),
+      this.prisma.m_instansi.count({ where }),
+    ]);
+    return { data, total };
+  }
 }

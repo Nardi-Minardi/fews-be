@@ -6,6 +6,7 @@ import {
   IsArray,
   MinLength,
   IsEnum,
+  IsNumber,
 } from 'class-validator';
 import { UserRole } from '../interface/auth.interface';
 
@@ -67,8 +68,8 @@ export class RegisterDto {
     example: 'BMKG Jawa Barat',
     description: 'Instansi tempat user bekerja',
   })
-  @IsString()
-  instansi: string;
+  @IsNumber()
+  instansi_id: number;
 
   @ApiProperty({
     example: ['bandung', 'bogor'],
@@ -113,8 +114,8 @@ export class UserResponseDto {
   })
   role: UserRole;
 
-  @ApiProperty({ example: 'BMKG Jawa Barat', description: 'Instansi user' })
-  instansi: string;
+  @ApiProperty({ example: 1, description: 'ID instansi tempat user bekerja' })
+  instansi_id: number | null;
 
   @ApiProperty({
     example: ['bandung', 'bogor'],
@@ -168,7 +169,7 @@ export class LoginResponseDto {
     full_name: string;
     role: UserRole;
     jabatan: string;
-    instansi: string;
+    instansi_id: number | null;
     wilayah_kerja?: string[];
   };
 }

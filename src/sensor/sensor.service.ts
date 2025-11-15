@@ -30,9 +30,6 @@ export class SensorService {
 
     const createData = {
       device_id: createRequest.device_id,
-      name: createRequest.name,
-      owner: createRequest.owner,
-      hidrologi_type: createRequest.hidrologi_type,
       sensors: createRequest.sensors,
     };
 

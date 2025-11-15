@@ -68,6 +68,7 @@ export class DashboardRepository {
     kecamatan_code?: string,
     kel_des_code?: string,
     device_tag_id?: number[],
+    instansi_id?: number | null,
   ) {
     const cleanSearch =
       search?.trim().replace(/^[“”"'']+|[“”"'']+$/g, '') ?? '';
@@ -93,9 +94,14 @@ export class DashboardRepository {
         dvc.long,
         dvc.cctv_url,
         dvc.value,
+        dvc.instansi_id,
         dvc.created_at,
         dvc.updated_at,
-        d.name AS das_name
+        dvc.das_name AS das_name,
+        d.provinsi_code,
+        d.kab_kota_code,
+        d.kecamatan_code,
+        d.kel_des_code
        
       FROM m_device dvc
       LEFT JOIN m_das d ON d.id = dvc.das_id
@@ -106,11 +112,40 @@ export class DashboardRepository {
           LOWER(dvc.name) LIKE ${keyword} OR
           LOWER(d.name) LIKE ${keyword}
         )
-       
-        AND 
-        (
+
+        -- 🔹 FILTER DEVICE TAG
+        AND (
           ${!device_tag_id || device_tag_id.length === 0}
           OR dvc.device_tag_id && ${device_tag_id}::int[]
+        )
+
+        -- 🔹 FILTER INSTANSI ID
+        AND (
+          ${!instansi_id} OR dvc.instansi_id = ${instansi_id}
+        )
+
+         -- 🔹 FILTER PROVINSI
+        AND (
+          ${!provinsi_code}
+          OR d.provinsi_code = ${provinsi_code}
+        )
+
+        -- 🔹 FILTER KAB/KOTA
+        AND (
+          ${!kab_kota_code}
+          OR d.kab_kota_code = ${kab_kota_code}
+        )
+
+        -- 🔹 FILTER KECAMATAN
+        AND (
+          ${!kecamatan_code}
+          OR d.kecamatan_code = ${kecamatan_code}
+        )
+
+        -- 🔹 FILTER KEL/DES
+        AND (
+          ${!kel_des_code}
+          OR d.kel_des_code = ${kel_des_code}
         )
       ORDER BY dvc.updated_at DESC
       LIMIT ${limit} OFFSET ${offset};
@@ -146,6 +181,8 @@ export class DashboardRepository {
     kecamatan_code?: string,
     kel_des_code?: string,
     device_tag_id?: number[],
+    instansi_id?: number | null,
+    hidrologi_type?: string,
   ) {
     const cleanSearch =
       search?.trim().replace(/^[“”"'']+|[“”"'']+$/g, '') ?? '';
@@ -171,9 +208,14 @@ export class DashboardRepository {
         dvc.long,
         dvc.cctv_url,
         dvc.value,
+        dvc.instansi_id,
         dvc.created_at,
         dvc.updated_at,
-        d.name AS das_name
+        dvc.das_name AS das_name,
+        d.provinsi_code,
+        d.kab_kota_code,
+        d.kecamatan_code,
+        d.kel_des_code
        
       FROM m_device dvc
       LEFT JOIN m_das d ON d.id = dvc.das_id
@@ -184,11 +226,46 @@ export class DashboardRepository {
           LOWER(dvc.name) LIKE ${keyword} OR
           LOWER(d.name) LIKE ${keyword}
         )
-       
-        AND 
-        (
+
+        -- 🔹 FILTER DEVICE TAG
+        AND (
           ${!device_tag_id || device_tag_id.length === 0}
           OR dvc.device_tag_id && ${device_tag_id}::int[]
+        )
+
+        -- 🔹 FILTER INSTANSI ID
+        AND (
+          ${!instansi_id} OR dvc.instansi_id = ${instansi_id}
+        )
+
+         -- 🔹 FILTER PROVINSI
+        AND (
+          ${!provinsi_code}
+          OR d.provinsi_code = ${provinsi_code}
+        )
+
+        -- 🔹 FILTER KAB/KOTA
+        AND (
+          ${!kab_kota_code}
+          OR d.kab_kota_code = ${kab_kota_code}
+        )
+
+        -- 🔹 FILTER KECAMATAN
+        AND (
+          ${!kecamatan_code}
+          OR d.kecamatan_code = ${kecamatan_code}
+        )
+
+        -- 🔹 FILTER KEL/DES
+        AND (
+          ${!kel_des_code}
+          OR d.kel_des_code = ${kel_des_code}
+        )
+
+        -- 🔹 FILTER HIDROLOGI TYPE
+        AND (
+          ${!hidrologi_type}
+          OR dvc.hidrologi_type = ${hidrologi_type}
         )
       ORDER BY dvc.updated_at DESC
       LIMIT ${limit} OFFSET ${offset};
@@ -215,43 +292,12 @@ export class DashboardRepository {
     return result[0]?.count ?? 0;
   }
 
-  async getSensorsByDeviceUid(device_uid: string) {
-    const rows = await this.prisma.$queryRaw<any[]>`
-      SELECT 
-        s.id, s.sensor_uid, s.device_uid, s.name, s.unit, s.sensor_type,
-        s.criteria_id, s.criteria_status, s.value, s.value_change, s.debit,
-        s.last_sending_data, s.created_at, s.updated_at, s.elevation, s.years_data,
-        dvc.device_tag_id AS device_tag_id
-      FROM tr_sensor_log s
-      LEFT JOIN m_device dvc ON dvc.device_uid = s.device_uid
-      WHERE s.device_uid = ${device_uid}
-      ORDER BY s.updated_at DESC
-    `;
-
-    // Compute absolute water level for water_level sensors
-    const mapped = rows.map((s) => {
-      let abs_water_level: number | null = null;
-      if (s.sensor_type === 'water_level' && s.value != null) {
-        const val = Number(s.value);
-        const elev = Number(s.elevation ?? 0);
-        const unit = String(s.unit || '').toLowerCase();
-        const meters =
-          unit === 'mm' ? val / 1000 : unit === 'cm' ? val / 100 : val;
-        abs_water_level = Math.round((elev + meters) * 100) / 100;
-      }
-      return { ...s, abs_water_level };
-    });
-
-    return mapped;
-  }
-
   async getSensorsByDeviceUidToday(device_uid: string) {
     // Ambil sensor dari log hari ini UTC
     const rows = await this.prisma.$queryRaw<any[]>`
       SELECT 
-        sl.id::text, sl.sensor_uid, sl.device_uid, sl.name, sl.unit, sl.sensor_type,
-        sl.criteria_id, sl.criteria_status, sl.value, sl.value_change, sl.debit,
-        sl.last_sending_data, sl.created_at, sl.updated_at, sl.elevation, sl.years_data,
+        sl.id::text, sl.sensor_uid, sl.device_uid, sl.name, sl.unit, sl.value, sl.value_change, sl.debit,
+        sl.last_sending_data, sl.created_at, sl.updated_at, sl.elevation,
         dvc.device_tag_id AS device_tag_id, s.sensor_type AS sensor_type
       FROM tr_sensor_log sl
       LEFT JOIN m_device dvc ON dvc.device_uid = sl.device_uid

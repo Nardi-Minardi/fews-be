@@ -25,9 +25,7 @@ export class AuthValidation {
       jabatan: z
         .string({ required_error: 'Jabatan is required' })
         .min(2, 'Jabatan is too short'),
-      instansi: z
-        .string({ required_error: 'Instansi is required' })
-        .min(2, 'Instansi is too short'),
+      instansi_id: z.number().optional(),
       wilayah_kerja: z.array(z.string().min(1)).optional(),
     })
     .strict();

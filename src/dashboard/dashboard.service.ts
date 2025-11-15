@@ -33,6 +33,7 @@ export class DashboardService {
     kecamatan_code?: string,
     kel_des_code?: string,
     device_tag_id?: number[],
+    instansi_id?: number | null,
   ) {
     let data = (await this.dashboardRepository.listDevices(
       limit,
@@ -43,6 +44,7 @@ export class DashboardService {
       kecamatan_code,
       kel_des_code,
       device_tag_id,
+      instansi_id,
     )) as any[];
 
     // Enrich missing region codes using reverse geocoding as last resort
@@ -258,6 +260,8 @@ export class DashboardService {
     kecamatan_code?: string,
     kel_des_code?: string,
     device_tag_id?: number[],
+    instansi_id?: number | null,
+    hidrologi_type?: string,
   ) {
     let data = (await this.dashboardRepository.listDevicesTable(
       limit,
@@ -268,6 +272,8 @@ export class DashboardService {
       kecamatan_code,
       kel_des_code,
       device_tag_id,
+      instansi_id,
+      hidrologi_type,
     )) as any[];
 
     // Enrich missing region codes using reverse geocoding as last resort

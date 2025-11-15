@@ -69,12 +69,12 @@ model m_users {
   full_name     String?   @db.VarChar(150)
   jabatan       String?   @db.VarChar(100)
   role          user_role
-  instansi      String?   @db.VarChar(150)
   wilayah_kerja String[]
   is_active     Boolean?  @default(true)
   created_at    DateTime? @default(now()) @db.Timestamp(6)
   updated_at    DateTime? @default(now()) @db.Timestamp(6)
   last_login    DateTime? @db.Timestamp(6)
+  instansi_id   Int?
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
@@ -87,25 +87,27 @@ model spatial_ref_sys {
 }
 
 model m_device {
-  id                Int       @id @default(autoincrement())
-  device_uid        String?   @unique @db.VarChar(255)
+  id                Int         @id @default(autoincrement())
+  device_uid        String?     @unique @db.VarChar(255)
   device_tag_id     Int[]
   das_id            Int?
   sungai_id         Int?
-  owner             String?   @db.VarChar(255)
-  name              String    @db.VarChar(255)
-  hidrologi_type    String?   @db.VarChar(255)
-  device_status     String?   @db.VarChar(50)
-  last_sending_data DateTime? @db.Timestamptz(6)
-  last_battery      Decimal?  @db.Decimal(5, 2)
-  last_signal       Decimal?  @db.Decimal(5, 2)
+  owner             String?     @db.VarChar(255)
+  name              String      @db.VarChar(255)
+  hidrologi_type    String?     @db.VarChar(255)
+  device_status     String?     @db.VarChar(50)
+  last_sending_data DateTime?   @db.Timestamptz(6)
+  last_battery      Decimal?    @db.Decimal(5, 2)
+  last_signal       Decimal?    @db.Decimal(5, 2)
   lat               Float?
   long              Float?
   cctv_url          String?
-  value             Decimal?  @db.Decimal(10, 2)
-  created_at        DateTime? @default(now()) @db.Timestamp(6)
-  updated_at        DateTime? @default(now()) @db.Timestamp(6)
-  das_name          String?   @db.VarChar(255)
+  value             Decimal?    @db.Decimal(10, 2)
+  created_at        DateTime?   @default(now()) @db.Timestamp(6)
+  updated_at        DateTime?   @default(now()) @db.Timestamp(6)
+  das_name          String?     @db.VarChar(255)
+  instansi_id       Int?
+  m_instansi        m_instansi? @relation(fields: [instansi_id], references: [id], onDelete: Restrict, map: "fk_instansi")
 }
 
 model m_device_tag {
@@ -130,14 +132,10 @@ model tr_sensor_log {
   sensor_uid        String?   @db.VarChar(255)
   name              String    @db.VarChar(255)
   unit              String?   @db.VarChar(100)
-  sensor_type       String?   @db.VarChar(255)
-  criteria_id       Int?
-  criteria_status   Int?
   value             Decimal?  @db.Decimal(10, 2)
   value_change      Decimal?  @db.Decimal(10, 2)
   debit             Decimal?  @db.Decimal(10, 2)
   elevation         Decimal?  @db.Decimal(10, 2)
-  years_data        Int[]
   last_sending_data DateTime? @db.Timestamp(6)
   created_at        DateTime? @default(now()) @db.Timestamp(6)
   updated_at        DateTime? @default(now()) @db.Timestamp(6)
@@ -164,6 +162,22 @@ model m_sensor {
   sensor_key        String?   @db.VarChar(100)
 
   @@unique([device_uid, sensor_uid], map: "device_uid_sensor_uid")
+}
+
+model m_instansi {
+  id             Int        @id @default(autoincrement())
+  name           String?    @db.VarChar(255)
+  no_telepon     String?    @db.VarChar(50)
+  email          String?    @db.VarChar(255)
+  provinsi_code  String?    @db.VarChar(20)
+  kab_kota_code  String?    @db.VarChar(20)
+  kecamatan_code String?    @db.VarChar(20)
+  kel_des_code   String?    @db.VarChar(20)
+  alamat         String?
+  kode_pos       String?    @db.VarChar(50)
+  created_at     DateTime?  @default(now()) @db.Timestamp(6)
+  updated_at     DateTime?  @default(now()) @db.Timestamp(6)
+  m_device       m_device[]
 }
 
 enum user_role {

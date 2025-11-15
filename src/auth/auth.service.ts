@@ -44,7 +44,7 @@ export class AuthService {
       email: user.email,
       role: user.role as any as UserRole,
       jabatan: user.jabatan ?? '',
-      instansi: user.instansi ?? '',
+      instansi_id: user.instansi_id ?? null,
       wilayah_kerja: user.wilayah_kerja ?? undefined,
     };
     const jwtSecret = process.env.JWT_SECRET || 'ItgdFVuiX2Kn7F6hLlYT';
@@ -67,7 +67,7 @@ export class AuthService {
         full_name: (user as any).full_name ?? '',
         role: user.role as any as UserRole,
         jabatan: user.jabatan ?? '',
-        instansi: user.instansi ?? '',
+        instansi_id: user.instansi_id ?? null,
         wilayah_kerja: user.wilayah_kerja ?? undefined,
       },
     };
@@ -96,7 +96,7 @@ export class AuthService {
       full_name: createRequest.full_name,
       jabatan: createRequest.jabatan,
       role: 'USER',
-      instansi: createRequest.instansi,
+      instansi_id: createRequest.instansi_id ?? null,
       wilayah_kerja: createRequest.wilayah_kerja ?? [],
       is_active: true,
     });
@@ -107,7 +107,7 @@ export class AuthService {
       full_name: (newUser as any).full_name,
       jabatan: newUser.jabatan ?? '',
       role: newUser.role as any as UserRole,
-      instansi: newUser.instansi ?? '',
+      instansi_id: newUser.instansi_id ?? null,
       wilayah_kerja: (newUser as any).wilayah_kerja ?? [],
       is_active: (newUser as any).is_active ?? true,
       created_at: (newUser as any).created_at,
@@ -137,7 +137,7 @@ export class AuthService {
         email: user.email,
         role: user.role as any as UserRole,
         jabatan: user.jabatan ?? '',
-        instansi: user.instansi ?? '',
+        instansi_id: user.instansi_id ?? null,
         wilayah_kerja: user.wilayah_kerja ?? undefined,
       };
       return {
@@ -163,7 +163,7 @@ export class AuthService {
       full_name: (user as any).full_name ?? '',
       jabatan: user.jabatan ?? '',
       role: user.role as any as UserRole,
-      instansi: user.instansi ?? '',
+      instansi_id: user.instansi_id ?? null,
       wilayah_kerja: user.wilayah_kerja ?? undefined,
       is_active: (user as any).is_active ?? true,
       created_at: (user as any).created_at,
@@ -182,7 +182,7 @@ export class AuthService {
         full_name: (u as any).full_name ?? '',
         jabatan: u.jabatan ?? '',
         role: u.role as any as UserRole,
-        instansi: u.instansi ?? '',
+        instansi_id: u.instansi_id ?? null,
         wilayah_kerja: u.wilayah_kerja ?? undefined,
         is_active: (u as any).is_active ?? true,
         created_at: (u as any).created_at,
@@ -203,7 +203,7 @@ export class AuthService {
           full_name: (u as any).full_name ?? '',
           jabatan: u.jabatan ?? '',
           role: u.role as any as UserRole,
-          instansi: u.instansi ?? '',
+          instansi_id: u.instansi_id ?? null,
           wilayah_kerja: u.wilayah_kerja ?? undefined,
           is_active: (u as any).is_active ?? true,
           created_at: (u as any).created_at,

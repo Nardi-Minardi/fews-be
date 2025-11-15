@@ -36,7 +36,7 @@ export class DashboardController {
   @Public()
   @RedisCache('fews-be-dashboard-das-list', 5)
   @ApiOperation({
-    summary: 'Get DAS list',
+    summary: 'Get DAS List',
     description:
       'Mengambil daftar DAS (Daerah Aliran Sungai). Bisa difilter berdasarkan provinsi.',
   })
@@ -85,7 +85,7 @@ export class DashboardController {
   @Public()
   @RedisCache('fews-be-dashboard-devices-tags-list', 5)
   @ApiOperation({
-    summary: 'Get Device Tags list',
+    summary: 'Get Device Tags List',
     description: 'Mengambil daftar tag device (ARR/AWLR/AWS) yang tersedia.',
   })
   async getDevicesTags() {
@@ -101,7 +101,7 @@ export class DashboardController {
   @HttpCode(HttpStatus.OK)
   @Public()
   @ApiOperation({
-    summary: 'Get Devices list',
+    summary: 'Get Devices List',
     description:
       'Mengambil daftar device (ARR/AWLR/AWS) beserta status dan sensor terakhir, dengan pagination.',
   })
@@ -122,9 +122,11 @@ export class DashboardController {
     @Query('kecamatan_code') kecamatan_code?: string,
     @Query('kel_des_code') kel_des_code?: string,
     @Query('device_tag_id') device_tag_id?: any,
+    @Query('instansi_id') instansi_id?: string,
   ) {
     const parsedLimit = Number(limit);
     const parsedOffset = Number(offset);
+    const parsedInstansiId = instansi_id ? Number(instansi_id) : null;
     if (search === '""' || search === "''") search = '';
     let parsedDeviceTagIds: number[] = [];
     if (device_tag_id) {
@@ -153,6 +155,7 @@ export class DashboardController {
       kecamatan_code,
       kel_des_code,
       parsedDeviceTagIds,
+      parsedInstansiId,
     );
     return {
       status_code: HttpStatus.OK,
@@ -165,7 +168,7 @@ export class DashboardController {
   @Get(':device_uid/sensors')
   @Public()
   @ApiOperation({
-    summary: 'Get Device Sensors with Criteria',
+    summary: 'Get Sensor Log by Device UID',
     description:
       'Mengambil daftar sensor dari sebuah device beserta kriteria penilaian (misal level bahaya untuk sensor curah hujan).',
   })
@@ -173,7 +176,7 @@ export class DashboardController {
     name: 'device_uid',
     required: true,
     description: 'Unique ID dari device',
-    example: 'DEVICE-001',
+    example: '4f2eb2e5-9f14-413b-97d4-07b689847e97',
   })
   @HttpCode(HttpStatus.OK)
   async getDeviceSensors(

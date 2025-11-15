@@ -22,7 +22,7 @@ export class DataMasterController {
   @HttpCode(HttpStatus.OK)
   @Public()
   @ApiOperation({
-    summary: 'List wilayah dinamis',
+    summary: 'List Wilayah Dinamis',
     description:
       'Ambil daftar wilayah berdasarkan level: provinsi | kab_kota | kecamatan | kel_des. Gunakan parent_code sesuai level.',
   })
@@ -36,7 +36,7 @@ export class DataMasterController {
   @ApiQuery({ name: 'parent_code', required: false })
   @ApiQuery({ name: 'search', required: false })
   @ApiQuery({ name: 'page', required: false, example: 1 })
-  @ApiQuery({ name: 'limit', required: false, example: 20 })
+  @ApiQuery({ name: 'limit', required: false, example: 50 })
   async listWilayah(
     @Query('level') level: 'provinsi' | 'kab_kota' | 'kecamatan' | 'kel_des',
     @Query('parent_code') parentCode?: string,
@@ -62,13 +62,13 @@ export class DataMasterController {
   @HttpCode(HttpStatus.OK)
   @Public()
   @ApiOperation({
-    summary: 'List Master Kriteria',
+    summary: 'List Master Criteria',
     description:
       'Ambil data master kriteria',
   })
   @ApiQuery({ name: 'search', required: false })
   @ApiQuery({ name: 'page', required: false, example: 1 })
-  @ApiQuery({ name: 'limit', required: false, example: 20 })
+  @ApiQuery({ name: 'limit', required: false, example: 50 })
   async listCriteria(
     @Query('search') search?: string,
     @Query('page') page = '1',
@@ -88,6 +88,44 @@ export class DataMasterController {
     return {
       status_code: 200,
       message: 'success',
+      limit: limitNum,
+      offset: (pageNum - 1) * limitNum,
+      total_data: total,
+      data: result,
+    }
+  }
+
+  @Get('instansi')
+  @HttpCode(HttpStatus.OK)
+  @Public()
+  @ApiOperation({
+    summary: 'List Master Instansi',
+    description:
+      'Ambil data master Instansi',
+  })
+  @ApiQuery({ name: 'search', required: false })
+  @ApiQuery({ name: 'page', required: false, example: 1 })
+  @ApiQuery({ name: 'limit', required: false, example: 50 })
+  async listInstansi(
+    @Query('search') search?: string,
+    @Query('page') page = '1',
+    @Query('limit') limit = '50',
+  ) {
+    const pageNum = Math.max(parseInt(page || '1', 10) || 1, 1);
+    const limitNum = Math.min(
+      Math.max(parseInt(limit || '50', 10) || 50, 1),
+      200,
+    );
+    const { data: result, total } = await this.dataMasterRepository.listInstansi(
+      search,
+      pageNum,
+      limitNum,
+    );
+
+    return {
+      status_code: 200,
+      message: 'success',
+      limit: limitNum,
       offset: (pageNum - 1) * limitNum,
       total_data: total,
       data: result,

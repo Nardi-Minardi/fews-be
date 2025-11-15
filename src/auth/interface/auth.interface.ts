@@ -13,7 +13,7 @@ export interface User {
   full_name: string;
   jabatan: string;
   role: UserRole;
-  instansi: string;
+  instansi_id: number | null;
   wilayah_kerja?: string[]; // Array of area IDs that user can access
   is_active: boolean;
   created_at: Date;
@@ -27,7 +27,7 @@ export interface JwtPayload {
   email: string;
   role: UserRole;
   jabatan: string;
-  instansi: string;
+  instansi_id: number | null;
   wilayah_kerja?: string[];
   iat?: number;
   exp?: number;
@@ -43,7 +43,7 @@ export interface LoginResponse {
     full_name: string;
     role: UserRole;
     jabatan: string;
-    instansi: string;
+    instansi_id: number | null;
     wilayah_kerja?: string[];
   };
 }

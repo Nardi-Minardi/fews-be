@@ -8,7 +8,7 @@ export type CreateUserInput = {
 	full_name?: string | null;
 	jabatan?: string | null;
 	role: 'SUPERADMIN' | 'ADMIN' | 'OPERATOR' | 'USER';
-	instansi?: string | null;
+	instansi_id?: number | null;
 	wilayah_kerja?: string[];
 	is_active?: boolean | null;
 };
@@ -38,7 +38,7 @@ export class AuthRepository {
 				full_name: data.full_name ?? null,
 				jabatan: data.jabatan ?? null,
 				role: data.role as any,
-				instansi: data.instansi ?? null,
+				instansi_id : data.instansi_id ?? null,
 				wilayah_kerja: data.wilayah_kerja ?? [],
 				is_active: data.is_active ?? true,
 			},

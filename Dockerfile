@@ -33,7 +33,7 @@ RUN npx prisma generate --schema=./prisma/main/schema.prisma
 # Debug: cek isi dist
 RUN ls -la ./dist
 
-EXPOSE 3014 5014
+EXPOSE 3014
 # Default to API; override CMD in docker-compose for worker and websocket
 CMD ["node", "dist/src/main.js"]
   
