@@ -37,28 +37,30 @@ export class CmsMenuController {
   ) {}
 
   @Get('/')
-  @ApiOperation({
-    summary: 'Get All Menus',
-    description: 'Mendapatkan daftar semua user (hanya admin dan operator)',
-  })
-  @ApiQuery({ name: 'offset', required: false, example: 0 })
-  @ApiQuery({ name: 'limit', required: false, example: 50 })
-  @HttpCode(HttpStatus.OK)
   async getAllMenus(
     @Query('search') search?: string,
     @Query('offset') offset = '0',
     @Query('limit') limit = '50',
+    @Query('module_ids') moduleIdsQuery?: string,
     @Headers() headers?: Record<string, any>,
   ) {
+
     const authorization = headers?.['authorization'] || '';
     const userLogin = await getUserFromToken(authorization);
 
-    //get all modules for reference by instansi_ids
+    // Default moduleIds dari userLogin
     const modules = await this.cmsModuleRepository.findModulesByInstansiIds(
       (userLogin as any)?.instansi_id ? [(userLogin as any)?.instansi_id] : [],
     );
+    let moduleIds = modules.map((mod) => mod.id);
 
-    const moduleIds = modules.map((mod) => mod.id);
+    // Jika module_ids dikirim, parsing CSV
+    if (moduleIdsQuery) {
+      moduleIds = moduleIdsQuery
+        .split(',')
+        .map((id) => parseInt(id, 10))
+        .filter((id) => !isNaN(id));
+    }
 
     const pageNum = Math.max(parseInt(offset || '0', 10) || 0, 0) + 1;
     const limitNum = Math.min(
@@ -191,11 +193,11 @@ export class CmsMenuController {
     },
   })
   @HttpCode(HttpStatus.OK)
-  async assignUserToMenu(
-    @Param('id') id: string,
-    @Body() body: any,
-  ) {
-    const result = await this.cmsMenuService.assignUserToMenu(parseInt(id, 10), body);
+  async assignUserToMenu(@Param('id') id: string, @Body() body: any) {
+    const result = await this.cmsMenuService.assignUserToMenu(
+      parseInt(id, 10),
+      body,
+    );
     return {
       status_code: 200,
       message: 'Assign User to Menu - to be implemented',

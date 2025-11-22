@@ -1,5 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ScheduleModule } from '@nestjs/schedule';
+import { WinstonModule } from 'nest-winston';
+import * as winston from 'winston';
 import { CommonModule } from './common/common.module';
 import { AuthModule } from './auth/auth.module';
 import { DashboardModule } from './dashboard/dashboard.module';
@@ -14,8 +16,8 @@ import { CmsMenuModule } from './cms/menu/menu.module';
 @Module({
   imports: [
     ScheduleModule.forRoot(),
-    AuthModule,
     CommonModule,
+    AuthModule,
     DashboardModule,
     DataMasterModule,
     SensorModule,

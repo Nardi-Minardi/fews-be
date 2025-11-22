@@ -14,6 +14,6 @@ import { AuthRepository } from 'src/auth/auth.repository';
     DataMasterRepository,
     AuthRepository,
   ],
-  exports: [CmsMenuService],
+  exports: [],
 })
 export class CmsMenuModule {}

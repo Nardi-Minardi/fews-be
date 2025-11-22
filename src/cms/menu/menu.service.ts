@@ -1,17 +1,16 @@
-import { Injectable, HttpException, Logger, Inject } from '@nestjs/common';
+import { Injectable, HttpException, Inject } from '@nestjs/common';
 import { ValidationService } from 'src/common/validation.service';
 import { CmsMenuRepository } from './menu.repository';
-import { User, UserRole } from 'src/auth/interface/auth.interface';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { CmsMenuValidation } from './menu.validation';
-import { DataMasterRepository } from 'src/data-master/data-master.repository';
 import { CmsModuleRepository } from '../module/module.repository';
 import { AuthRepository } from 'src/auth/auth.repository';
+import { Logger } from 'winston';
 
 @Injectable()
 export class CmsMenuService {
   constructor(
-    @Inject(WINSTON_MODULE_PROVIDER) private logger: Logger,
+    @Inject(WINSTON_MODULE_PROVIDER) private readonly logger: Logger,
     private readonly validationService: ValidationService,
     private readonly cmsMenuRepository: CmsMenuRepository,
     private readonly cmsModuleRepository: CmsModuleRepository,
@@ -24,7 +23,7 @@ export class CmsMenuService {
     limit?: number;
     offset?: number;
   }): Promise<{ data: any[]; total: number }> {
-    this.logger.debug('Request get menus with params', { request });
+    this.logger.info('Request get menus with params', { request });
 
     // Ambil data user
     const menus = await this.cmsMenuRepository.findAllMenu({
@@ -47,6 +46,7 @@ export class CmsMenuService {
       value: menu.value,
       path: menu.path,
       module_id: menu.module_id,
+      module_name: menu.m_modules.name,
       is_active: menu.is_active,
       created_at: menu.created_at,
       updated_at: menu.updated_at,
@@ -57,7 +57,7 @@ export class CmsMenuService {
 
   //create menus
   async createMenu(request: any & {}): Promise<any> {
-    this.logger.debug('Request create menu', {
+    this.logger.info('Request create menu', {
       request,
     });
 
@@ -103,7 +103,7 @@ export class CmsMenuService {
 
   //update menu
   async updateMenu(id: number, request: any & {}): Promise<any> {
-    this.logger.debug('Request update menu', {
+    this.logger.info('Request update menu', {
       id,
       request,
     });
@@ -161,7 +161,7 @@ export class CmsMenuService {
 
   //delete menu
   async deleteMenu(id: number): Promise<any> {
-    this.logger.debug('Request delete menu', {
+    this.logger.info('Request delete menu', {
       id,
     });
     const existingMenu = await this.cmsMenuRepository.findMenuById(id);
@@ -174,7 +174,7 @@ export class CmsMenuService {
 
   //assign permission to menu can be added here
   async assignUserToMenu(id: number, request: any & {}): Promise<any> {
-    this.logger.debug('Request assign user to menu', {
+    this.logger.info('Request assign user to menu', {
       id,
       request,
     });
@@ -201,7 +201,10 @@ export class CmsMenuService {
     }
 
     //cek menu tersebut punya module yang sama dengan user dengan instansi yang sama
-    const checkMenu = await this.cmsMenuRepository.checkMenuModule( id, createRequest.user_id );
+    const checkMenu = await this.cmsMenuRepository.checkMenuModule(
+      id,
+      createRequest.user_id,
+    );
     if (!checkMenu) {
       throw new HttpException(
         `Menu dengan id ${id} bukan bagian dari module di instansi yang sama dengan user id ${createRequest.user_id}`,

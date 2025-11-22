@@ -6,8 +6,10 @@ import {
   OnGatewayInit,
 } from '@nestjs/websockets';
 import { Server } from 'socket.io';
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Inject } from '@nestjs/common';
 import { RedisService } from 'src/common/redis.service';
+import { Logger } from 'winston';
+import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 
 @WebSocketGateway({
   cors: {
@@ -20,12 +22,13 @@ import { RedisService } from 'src/common/redis.service';
 export class WebsocketGateway
   implements OnGatewayConnection, OnGatewayDisconnect, OnGatewayInit
 {
-  private readonly logger = new Logger(WebsocketGateway.name);
-
   @WebSocketServer()
   server: Server;
 
-  constructor(private readonly redisService: RedisService) {}
+  constructor(
+    @Inject(WINSTON_MODULE_PROVIDER) private readonly logger: Logger,
+    private readonly redisService: RedisService,
+  ) {}
 
   /**
    * Dijalankan saat Gateway pertama kali inisialisasi.
@@ -36,11 +39,11 @@ export class WebsocketGateway
     const channel =
       process.env.REDIS_PUBSUB_CHANNEL_TELEMETRY || 'telemetry:update';
 
-    this.logger.log(`[WS] Initializing WebSocket Gateway...`);
-    this.logger.log(`[WS] Subscribing to Redis channel: ${channel}`);
+    this.logger.info(`[WS] Initializing WebSocket Gateway...`);
+    this.logger.info(`[WS] Subscribing to Redis channel: ${channel}`);
 
     await this.redisService.subscribe(channel, (message) => {
-      this.logger.debug(`[WS] Received message from Redis: ${message}`);
+      this.logger.info(`[WS] Received message from Redis: ${message}`);
 
       try {
         const parsed = JSON.parse(message);
@@ -50,7 +53,7 @@ export class WebsocketGateway
             : parsed;
 
         this.server.emit('telemetry:update', data);
-        this.logger.debug(
+        this.logger.info(
           `[WS] Broadcasted telemetry:update to clients (${this.server.engine.clientsCount} connected)`,
         );
       } catch (e) {
@@ -59,14 +62,14 @@ export class WebsocketGateway
       }
     });
 
-    this.logger.log(`[WS] WebSocket Gateway initialized and ready`);
+    this.logger.info(`[WS] WebSocket Gateway initialized and ready`);
   }
 
   /**
    * Saat client FE tersambung
    */
   handleConnection(client: any) {
-    this.logger.log(`[WS] Client connected: ${client.id}`);
+    this.logger.info(`[WS] Client connected: ${client.id}`);
     client.emit('connection:ack', { message: 'Connected to FEWS WebSocket' });
   }
 
@@ -74,7 +77,7 @@ export class WebsocketGateway
    * Saat client FE disconnect
    */
   handleDisconnect(client: any) {
-    this.logger.log(`[WS] Client disconnected: ${client.id}`);
+    this.logger.info(`[WS] Client disconnected: ${client.id}`);
   }
 
   /**
@@ -82,6 +85,6 @@ export class WebsocketGateway
    */
   sendBroadcast(event: string, payload: any) {
     this.server.emit(event, payload);
-    this.logger.debug(`[WS] Manual broadcast: ${event}`);
+    this.logger.info(`[WS] Manual broadcast: ${event}`);
   }
 }

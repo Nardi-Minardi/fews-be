@@ -21,7 +21,7 @@ export class SensorService {
   ) {}
 
  async storeSensor(request: any): Promise<any> {
-    this.logger.debug('storing sensor data#1', { request });
+    this.logger.info('storing sensor data#1', { request });
 
     const createRequest = this.validationService.validate(
       SensorValidation.postTelemetrySchema,
@@ -33,7 +33,7 @@ export class SensorService {
       sensors: createRequest.sensors,
     };
 
-    this.logger.debug('storing sensor data#2', { createData });
+    this.logger.info('storing sensor data#2', { createData });
 
     return this.sensorRepository.insertSensorsLog(createData);
   }

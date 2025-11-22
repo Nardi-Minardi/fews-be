@@ -3,7 +3,7 @@ import { AppModule } from './app.module';
 import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { ValidationPipe } from '@nestjs/common';
-import * as express from 'express'; // ✅ tambahkan ini
+import * as express from 'express';
 import cookieParser from 'cookie-parser';
 
 async function bootstrap() {
@@ -47,35 +47,11 @@ async function bootstrap() {
 
   // Setup OpenAPI config
   const config = new DocumentBuilder()
-    .setTitle('FEWS Multi-Monitor Dashboard API')
+    .setTitle('FFEWFMS-BE API Documentation')
     .setDescription(
       `
-      # FEWS (Flood Early Warning System) API
-
-      ## 🔐 Authentication
-      Sistem menggunakan JWT Bearer Token authentication. 
-
-      ### Default Test Accounts:
-      - **Admin**: username \`admin\`, password \`admin123\`
-      - **Operator**: username \`operator_jabar\`, password \`operator123\`  
-      - **User**: username \`user_bandung\`, password \`user123\`
-
-      ### How to authenticate:
-      1. Call POST /auth/login dengan credentials
-      2. Copy \`access_token\` dari response
-      3. Click "Authorize" button di atas dan paste token
-      4. Format: \`Bearer your_access_token_here\`
-
-      ## 📊 Role-Based Access:
-      - **Admin**: Full access ke semua endpoints
-      - **Operator**: Read/write dashboard & sensors, read users  
-      - **User**: Read-only access ke dashboard & sensors
-
-      ## 🌊 WebSocket Real-time:
-      - Connect ke \`ws://localhost:${process.env.PORT}/ws\`
-      - Real-time sync antar multiple monitors
-      - Auto sensor updates setiap 30 detik
-          `,
+      # FFEWFMS-BE API Documentation
+      `,
     )
     .setVersion('1.0')
     .addBearerAuth(
@@ -105,7 +81,7 @@ async function bootstrap() {
     <!doctype html>
     <html>
       <head>
-        <title>FEWS Documentation</title>
+        <title>FFEWFMS-BE API Documentation</title>
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <style>

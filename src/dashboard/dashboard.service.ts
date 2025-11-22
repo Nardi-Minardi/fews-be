@@ -1,4 +1,6 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Inject } from '@nestjs/common';
+import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
+import { Logger } from 'winston';
 import { DashboardRepository } from './dashboard.repository';
 import { GeocodeService } from 'src/common/geocode.service';
 import { PrismaService } from 'src/common/prisma.service';
@@ -14,12 +16,14 @@ export type WilayahFilter = {
 @Injectable()
 export class DashboardService {
   constructor(
+    @Inject(WINSTON_MODULE_PROVIDER) private readonly logger: Logger,
     private readonly dashboardRepository: DashboardRepository,
     private readonly geocode: GeocodeService,
     private readonly prisma: PrismaService,
   ) {}
 
   async getDas(filters?: WilayahFilter) {
+    this.logger.info('Request get DAS with filters', { filters });
     const results = await this.dashboardRepository.listDas(filters);
     return results;
   }

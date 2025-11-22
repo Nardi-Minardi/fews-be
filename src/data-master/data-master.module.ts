@@ -2,11 +2,12 @@ import { Module } from '@nestjs/common';
 import { DataMasterController } from './data-master.controller';
 import { DataMasterService } from './data-master.service';
 import { DataMasterRepository } from './data-master.repository';
+import { CommonModule } from 'src/common/common.module';
 
 @Module({
-  imports: [],
+  imports: [CommonModule],
   controllers: [DataMasterController],
   providers: [DataMasterService, DataMasterRepository],
-  exports: [DataMasterService],
+  exports: [],
 })
 export class DataMasterModule {}

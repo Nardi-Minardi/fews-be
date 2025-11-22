@@ -32,7 +32,13 @@ export class CmsMenuRepository {
 
     return this.prisma.m_menus.findMany({
       where: whereClause,
-      include: {},
+      include: {
+        m_modules: {
+          select: {
+            name: true, 
+          },
+        },
+      },
       take: limit,
       skip: offset,
     });

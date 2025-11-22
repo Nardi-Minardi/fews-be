@@ -6,6 +6,6 @@ import { DataMasterRepository } from 'src/data-master/data-master.repository';
 @Module({
   controllers: [CmsModuleController],
   providers: [CmsModuleService, CmsModuleRepository, DataMasterRepository],
-  exports: [CmsModuleService],
+  exports: [],
 })
 export class CmsModuleModule {}

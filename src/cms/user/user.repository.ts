@@ -10,13 +10,16 @@ export class CmsUserRepository {
     search,
     limit = 50,
     offset = 0,
+    orderBy = 'id',
+    orderDirection = 'desc',
   }: {
     role_id?: number;
     search?: string;
     limit?: number;
     offset?: number;
+    orderBy?: string;
+    orderDirection?: 'asc' | 'desc';
   }) {
-
     const whereClause: any = {
       AND: [{ OR: [{ is_active: true }, { is_active: null }] }],
     };
@@ -35,8 +38,19 @@ export class CmsUserRepository {
       });
     }
 
+    // SAFE ORDER CLAUSE
+    let orderClause: any = undefined;
+
+    // hanya set jika orderBy valid
+    if (orderBy && orderBy.trim() !== '') {
+      orderClause = {
+        [orderBy]: orderDirection ?? 'asc',
+      };
+    }
+
     return this.prisma.m_users.findMany({
       where: whereClause,
+      orderBy: orderClause,
       include: { m_roles: true, m_jabatan: true, m_instansi: true },
       take: limit,
       skip: offset,
@@ -70,6 +84,51 @@ export class CmsUserRepository {
 
     return this.prisma.m_users.count({
       where: whereClause,
+    });
+  }
+
+  async findByUsername(username: string) {
+    return this.prisma.m_users.findUnique({
+      where: { username },
+    });
+  }
+
+  async findByEmail(email: string) {
+    return this.prisma.m_users.findUnique({
+      where: { email },
+    });
+  }
+
+  //find by id
+  async findUserById(id: number) {
+    return this.prisma.m_users.findUnique({
+      where: { id },
+    });
+  }
+
+  async saveUser(request: any & {}): Promise<any> {
+    return this.prisma.m_users.create({
+      data: request,
+      include: { m_roles: true, m_jabatan: true, m_instansi: true },
+    });
+  }
+
+  async updateUser(id: number, request: any & {}): Promise<any> {
+    const result = await this.prisma.m_users.update({
+      where: {
+        id,
+      },
+      data: {
+        ...request,
+      },
+      include: { m_roles: true, m_jabatan: true, m_instansi: true },
+    });
+    return result;
+  }
+
+  async deleteUser(id: number): Promise<any> {
+    return this.prisma.m_users.delete({
+      where: { id },
     });
   }
 }

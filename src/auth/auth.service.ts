@@ -6,17 +6,22 @@ import { AuthValidation } from './auth.validation';
 import { ValidationService } from 'src/common/validation.service';
 import { AuthRepository } from './auth.repository';
 import { PrismaService } from 'src/common/prisma.service';
+import { Inject } from '@nestjs/common';
+import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
+import { Logger } from 'winston';
 
 @Injectable()
 export class AuthService {
   constructor(
-    private prisma: PrismaService,
+    @Inject(WINSTON_MODULE_PROVIDER) private readonly logger: Logger,
+    private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
     private readonly validationService: ValidationService,
     private readonly authRepository: AuthRepository,
   ) {}
 
   async login(request: any): Promise<LoginResponse> {
+    this.logger.info('Request login with params', { request });
     // schema validation
     const createRequest = this.validationService.validate(
       AuthValidation.loginSchema,
@@ -71,6 +76,7 @@ export class AuthService {
         username: user.username,
         email: user.email,
         full_name: (user as any).full_name ?? '',
+        role_id: user.role_id,
       },
     };
   }

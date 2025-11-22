@@ -101,7 +101,7 @@ export class DataMasterRepository {
     return { data, total };
   }
 
-  //list master criteria
+  //list master instansi
   async listInstansi(search?: string, page?: number, limit?: number) {
     const skip = ((page || 1) - 1) * (limit || 50);
     const where: any = {};
@@ -123,6 +123,58 @@ export class DataMasterRepository {
   //find instansi by id
   async findInstansiById(id: number) {
     return this.prisma.m_instansi.findUnique({
+      where: { id },
+    });
+  }
+
+  //list master roles
+  async listRoles(search?: string, page?: number, limit?: number) {
+    const skip = ((page || 1) - 1) * (limit || 50);
+    const where: any = {};
+    if (search) {
+      where.name = { contains: search, mode: 'insensitive' };
+    }
+    const [data, total] = await Promise.all([
+      this.prisma.m_roles.findMany({
+        where,
+        skip,
+        take: limit || 50,
+        orderBy: { name: 'asc' },
+      }),
+      this.prisma.m_roles.count({ where }),
+    ]);
+    return { data, total };
+  }
+
+  //find instansi by id
+  async findRoleById(id: number) {
+    return this.prisma.m_roles.findUnique({
+      where: { id },
+    });
+  }
+
+  //list master roles
+  async listJabatan(search?: string, page?: number, limit?: number) {
+    const skip = ((page || 1) - 1) * (limit || 50);
+    const where: any = {};
+    if (search) {
+      where.name = { contains: search, mode: 'insensitive' };
+    }
+    const [data, total] = await Promise.all([
+      this.prisma.m_jabatan.findMany({
+        where,
+        skip,
+        take: limit || 50,
+        orderBy: { name: 'asc' },
+      }),
+      this.prisma.m_jabatan.count({ where }),
+    ]);
+    return { data, total };
+  }
+
+  //find instansi by id
+  async findJabatanById(id: number) {
+    return this.prisma.m_jabatan.findUnique({
       where: { id },
     });
   }

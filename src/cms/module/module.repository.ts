@@ -39,7 +39,13 @@ export class CmsModuleRepository {
 
     return this.prisma.m_modules.findMany({
       where: whereClause,
-      include: { },
+      include: {
+        m_instansi: {
+          select: {
+            name: true,
+          },
+        },
+       },
       take: limit,
       skip: offset,
     });

@@ -7,9 +7,10 @@ import { DeviceRepository } from 'src/device/device.repostiory';
 import { BullModule } from '@nestjs/bull';
 import { TelemetryProcessor } from './telemetry.processor';
 import { WebsocketGateway } from 'src/websocket/websocket.gateway';
+import { CommonModule } from 'src/common/common.module';
 
 @Module({
-  imports: [BullModule.registerQueue({ name: 'telemetry' })],
+  imports: [CommonModule, BullModule.registerQueue({ name: 'telemetry' })],
   controllers: [SensorController],
   providers: [
     SensorService,

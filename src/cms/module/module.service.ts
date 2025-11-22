@@ -1,15 +1,15 @@
-import { Injectable, HttpException, Logger, Inject } from '@nestjs/common';
+import { Injectable, HttpException, Inject } from '@nestjs/common';
 import { ValidationService } from 'src/common/validation.service';
 import { CmsModuleRepository } from './module.repository';
-import { User, UserRole } from 'src/auth/interface/auth.interface';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { CmsModuleValidation } from './module.validation';
 import { DataMasterRepository } from 'src/data-master/data-master.repository';
+import { Logger } from 'winston';
 
 @Injectable()
 export class CmsModuleService {
   constructor(
-    @Inject(WINSTON_MODULE_PROVIDER) private logger: Logger,
+    @Inject(WINSTON_MODULE_PROVIDER) private readonly logger: Logger,
     private readonly validationService: ValidationService,
     private readonly cmsModuleRepository: CmsModuleRepository,
     private readonly dataMasterRepository: DataMasterRepository,
@@ -22,7 +22,7 @@ export class CmsModuleService {
     offset?: number;
   }): Promise<{ data: any[]; total: number }> {
 
-    this.logger.debug('Request get modules with params', { request });
+    this.logger.info('Request get modules with params', { request });
 
     // Ambil data user
     const modules = await this.cmsModuleRepository.findAllModule({
@@ -43,6 +43,7 @@ export class CmsModuleService {
       id: module.id,
       name: module.name,
       instansi_id: module.instansi_id,
+      instansi_name: module.m_instansi.name,
       is_active: module.is_active,
       created_at: module.created_at,
       updated_at: module.updated_at,
@@ -53,7 +54,7 @@ export class CmsModuleService {
 
   //create modules
   async createModule(request: any & {}): Promise<any> {
-     this.logger.debug('Request create module', {
+     this.logger.info('Request create module', {
       request
     });
     const createRequest = this.validationService.validate(
@@ -86,7 +87,7 @@ export class CmsModuleService {
 
   //update module
   async updateModule(id: number, request: any & {}): Promise<any> {
-     this.logger.debug('Request update module', {
+     this.logger.info('Request update module', {
       id,
       request
     });
@@ -120,7 +121,7 @@ export class CmsModuleService {
 
   //delete module
   async deleteModule(id: number): Promise<any> {
-     this.logger.debug('Request delete module', {
+     this.logger.info('Request delete module', {
       id,
     });
     const existingModule = await this.cmsModuleRepository.findModuleById(id);

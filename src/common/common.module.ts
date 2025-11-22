@@ -18,7 +18,7 @@ import { RolesGuard } from './guards/roles.guard';
 @Module({
   imports: [
     WinstonModule.forRoot({
-      level: process.env.LOG_LEVEL || 'debug',
+      level: process.env.LOG_LEVEL || 'info',
       format: winston.format.combine(
         winston.format.timestamp(),
         winston.format.json(),
@@ -32,7 +32,7 @@ import { RolesGuard } from './guards/roles.guard';
         }),
         new winston.transports.File({
           filename: 'logs/app.log',
-          level: process.env.LOG_LEVEL || 'debug',
+          level: process.env.LOG_LEVEL || 'info',
           tailable: true, // optional, tetap bisa dipakai
         }),
       ],
@@ -65,6 +65,7 @@ import { RolesGuard } from './guards/roles.guard';
     S3Service,
     RedisService,
     GeocodeService,
+    WinstonModule,
   ],
 })
 export class CommonModule {}

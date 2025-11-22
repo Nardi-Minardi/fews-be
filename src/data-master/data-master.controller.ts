@@ -138,4 +138,78 @@ export class DataMasterController {
       data: result,
     }
   }
+
+  @Get('roles')
+  @HttpCode(HttpStatus.OK)
+  @Public()
+  @ApiOperation({
+    summary: 'List Master Roles',
+    description:
+      'Ambil data master Roles',
+  })
+  @ApiQuery({ name: 'search', required: false })
+  @ApiQuery({ name: 'offset', required: false, example: 0 })
+  @ApiQuery({ name: 'limit', required: false, example: 50 })
+  async listRoles(
+    @Query('search') search?: string,
+    @Query('offset') offset = '0',
+    @Query('limit') limit = '50',
+  ) {
+    const pageNum = Math.max(parseInt(offset || '0', 10) || 0, 0) + 1;
+    const limitNum = Math.min(
+      Math.max(parseInt(limit || '50', 10) || 50, 1),
+      200,
+    );
+    const { data: result, total } = await this.dataMasterRepository.listRoles(
+      search,
+      pageNum,
+      limitNum,
+    );
+
+    return {
+      status_code: 200,
+      message: 'success',
+      limit: limitNum,
+      offset: (pageNum - 1) * limitNum,
+      total_data: total,
+      data: result,
+    }
+  }
+
+  @Get('jabatan')
+  @HttpCode(HttpStatus.OK)
+  @Public()
+  @ApiOperation({
+    summary: 'List Master Jabatan',
+    description:
+      'Ambil data master Jabatan',
+  })
+  @ApiQuery({ name: 'search', required: false })
+  @ApiQuery({ name: 'offset', required: false, example: 0 })
+  @ApiQuery({ name: 'limit', required: false, example: 50 })
+  async listJabatan(
+    @Query('search') search?: string,
+    @Query('offset') offset = '0',
+    @Query('limit') limit = '50',
+  ) {
+    const pageNum = Math.max(parseInt(offset || '0', 10) || 0, 0) + 1;
+    const limitNum = Math.min(
+      Math.max(parseInt(limit || '50', 10) || 50, 1),
+      200,
+    );
+    const { data: result, total } = await this.dataMasterRepository.listJabatan(
+      search,
+      pageNum,
+      limitNum,
+    );
+
+    return {
+      status_code: 200,
+      message: 'success',
+      limit: limitNum,
+      offset: (pageNum - 1) * limitNum,
+      total_data: total,
+      data: result,
+    }
+  }
 }

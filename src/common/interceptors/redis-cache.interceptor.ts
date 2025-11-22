@@ -16,9 +16,9 @@ import { Logger } from 'winston';
 @Injectable()
 export class RedisCacheInterceptor implements NestInterceptor {
   constructor(
+    @Inject(WINSTON_MODULE_PROVIDER) private readonly logger: Logger,
     private readonly reflector: Reflector,
     private readonly redisService: RedisService,
-    @Inject(WINSTON_MODULE_PROVIDER) private readonly logger: Logger,
   ) {}
 
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
@@ -38,10 +38,10 @@ export class RedisCacheInterceptor implements NestInterceptor {
     return from(this.redisService.get(cacheKey)).pipe(
       switchMap((cached) => {
         if (cached) {
-          this.logger.debug(`[RedisCacheInterceptor] HIT: ${cacheKey}`);
+          this.logger.info(`[RedisCacheInterceptor] HIT: ${cacheKey}`);
           return of(JSON.parse(cached)); // ✅ langsung kembalikan data cache ke pipeline
         } else {
-          this.logger.debug(`[RedisCacheInterceptor] MISS: ${cacheKey}`);
+          this.logger.info(`[RedisCacheInterceptor] MISS: ${cacheKey}`);
           return next.handle().pipe(
             tap(async (responseData) => {
               await this.redisService.set(
@@ -49,7 +49,7 @@ export class RedisCacheInterceptor implements NestInterceptor {
                 JSON.stringify(responseData),
                 cacheMeta.ttl,
               );
-              this.logger.debug(
+              this.logger.info(
                 `[RedisCacheInterceptor] Stored cache: ${cacheKey} (TTL=${cacheMeta.ttl}s)`,
               );
             }),

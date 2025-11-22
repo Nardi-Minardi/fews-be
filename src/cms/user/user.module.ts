@@ -5,6 +5,6 @@ import { CmsUserRepository } from './user.repository';
 @Module({
   controllers: [CmsUserController],
   providers: [CmsUserService, CmsUserRepository],
-  exports: [CmsUserService],
+  exports: [],
 })
 export class CmsUserModule {}

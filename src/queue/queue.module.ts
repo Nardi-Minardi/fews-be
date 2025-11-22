@@ -1,10 +1,12 @@
 import { Module } from '@nestjs/common';
 import { BullModule } from '@nestjs/bull';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { CommonModule } from 'src/common/common.module';
 
 @Module({
   imports: [
     ConfigModule,
+    CommonModule,
     BullModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
