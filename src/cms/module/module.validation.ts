@@ -10,6 +10,7 @@ export class CmsModuleValidation {
   });
 
   static updateSchema = z.object({
+    instansi_id: z.number().optional(),
     name: z.string().min(1, 'Name is required').optional(),
     description: z.string().optional(),
     is_active: z.boolean().optional(),

@@ -136,7 +136,7 @@ export class AuthService {
         m_modules.name AS module_name,
         COALESCE(m_menu_permissions.permissions, ARRAY[]::text[]) AS permissions
       FROM m_menus
-      INNER JOIN m_modules 
+      LEFT JOIN m_modules 
         ON m_menus.module_id = m_modules.id
       LEFT JOIN m_menu_permissions 
         ON m_menu_permissions.menu_id = m_menus.id
@@ -154,6 +154,7 @@ export class AuthService {
       jabatan: user.m_jabatan?.name ?? '',
       role: user.m_roles?.name,
       instansi: user.m_instansi?.name ?? '',
+      instansi_id: user.instansi_id,
       wilayah_kerja: user.wilayah_kerja ?? undefined,
       is_active: (user as any).is_active ?? true,
       created_at: (user as any).created_at,

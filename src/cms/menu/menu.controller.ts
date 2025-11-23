@@ -13,6 +13,7 @@ import {
   HttpException,
   Delete,
   Headers,
+  Req,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -27,6 +28,7 @@ import { CmsMenuService } from './menu.service';
 import { getUserFromToken } from 'src/common/utils/helper.util';
 import { CmsModuleRepository } from '../module/module.repository';
 import { UserRole } from 'src/common/constants/role.enum';
+import { Request as ExpressRequest } from 'express';
 
 @ApiTags('CMS/Menu Management')
 @Controller('cms/menus')
@@ -37,16 +39,28 @@ export class CmsMenuController {
   ) {}
 
   @Get('/')
+  @ApiOperation({
+    summary: 'Get All Menus',
+    description: 'Mendapatkan daftar Menu',
+  })
   async getAllMenus(
     @Query('search') search?: string,
     @Query('offset') offset = '0',
     @Query('limit') limit = '50',
     @Query('module_ids') moduleIdsQuery?: string,
+    @Query('order_by') orderBy?: string,
+    @Query('order_direction') orderDirection?: 'asc' | 'desc',
+    @Req() req?: ExpressRequest,
     @Headers() headers?: Record<string, any>,
   ) {
+    //get from cookie or authorization header
+    const token =
+      req?.cookies?.auth_token ||
+      headers?.['authorization']?.replace('Bearer ', '') ||
+      '';
 
-    const authorization = headers?.['authorization'] || '';
-    const userLogin = await getUserFromToken(authorization);
+    const userLogin = await getUserFromToken(token);
+    console.log('userLogin', userLogin);
 
     // Default moduleIds dari userLogin
     const modules = await this.cmsModuleRepository.findModulesByInstansiIds(
@@ -73,6 +87,8 @@ export class CmsMenuController {
       search,
       limit: limitNum,
       offset: (pageNum - 1) * limitNum,
+      orderBy,
+      orderDirection,
     });
 
     return {

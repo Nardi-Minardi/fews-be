@@ -13,6 +13,7 @@ import {
   HttpException,
   Delete,
   Headers,
+  Req,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -26,6 +27,7 @@ import { RolesGuard } from 'src/common/guards/roles.guard';
 import { CmsModuleService } from './module.service';
 import { getUserFromToken } from 'src/common/utils/helper.util';
 import { UserRole } from 'src/common/constants/role.enum';
+import { Request as ExpressRequest } from 'express';
 
 @ApiTags('CMS/Module Management')
 @Controller('cms/modules')
@@ -45,10 +47,19 @@ export class CmsModuleController {
     @Query('search') search?: string,
     @Query('offset') offset = '0',
     @Query('limit') limit = '50',
+    @Query('order_by') orderBy?: string,
+    @Query('order_direction') orderDirection?: 'asc' | 'desc',
+    @Req() req?: ExpressRequest,
     @Headers() headers?: Record<string, any>,
   ) {
-    const authorization = headers?.['authorization'] || '';
-    const userLogin = await getUserFromToken(authorization);
+    //get from cookie or authorization header
+    const token =
+      req?.cookies?.auth_token ||
+      headers?.['authorization']?.replace('Bearer ', '') ||
+      '';
+
+    const userLogin = await getUserFromToken(token);
+    console.log('userLogin', userLogin);
 
     const pageNum = Math.max(parseInt(offset || '0', 10) || 0, 0) + 1;
     const limitNum = Math.min(
@@ -57,10 +68,14 @@ export class CmsModuleController {
     );
 
     const { data: result, total } = await this.cmsModuleService.getModules({
-      instansi_id: instansi_id ? parseInt(instansi_id, 10) : (userLogin as any)?.instansi_id || undefined,
+      instansi_id: instansi_id
+        ? parseInt(instansi_id, 10)
+        : (userLogin as any)?.instansi_id || undefined,
       search,
       limit: limitNum,
       offset: (pageNum - 1) * limitNum,
+      orderBy,
+      orderDirection,
     });
 
     return {
@@ -119,6 +134,7 @@ export class CmsModuleController {
     schema: {
       type: 'object',
       properties: {
+        instansi_id: { type: 'number', example: 1 },
         name: { type: 'string', example: 'Updated Module Name' },
         is_active: { type: 'boolean', example: true },
         description: { type: 'string', example: 'Updated Module Description' },

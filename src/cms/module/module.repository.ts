@@ -14,11 +14,15 @@ export class CmsModuleRepository {
     search,
     limit = 50,
     offset = 0,
+    orderBy = 'id',
+    orderDirection = 'desc',
   }: {
     instansi_id?: number;
     search?: string;
     limit?: number;
     offset?: number;
+    orderBy?: string;
+    orderDirection?: 'asc' | 'desc';
   }) {
 
     const whereClause: any = {
@@ -37,8 +41,19 @@ export class CmsModuleRepository {
       });
     }
 
+    // SAFE ORDER CLAUSE
+    let orderClause: any = undefined;
+
+    // hanya set jika orderBy valid
+    if (orderBy && orderBy.trim() !== '') {
+      orderClause = {
+        [orderBy]: orderDirection ?? 'asc',
+      };
+    }
+
     return this.prisma.m_modules.findMany({
       where: whereClause,
+      orderBy: orderClause,
       include: {
         m_instansi: {
           select: {
@@ -118,6 +133,7 @@ export class CmsModuleRepository {
       },
       data: {
         name: request.name,
+        instansi_id: request.instansi_id,
         is_active: request.is_active,
         description: request.description,
         updated_at: new Date(),

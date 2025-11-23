@@ -25,6 +25,7 @@ export class CmsUserService {
     offset?: number;
     orderBy?: string;
     orderDirection?: 'asc' | 'desc';
+    instansi_id?: number;
   }): Promise<{ data: PublicUser[]; total: number }> {
     this.logger.info('Request get users with params', { request });
 
@@ -36,6 +37,7 @@ export class CmsUserService {
       offset: request.offset,
       orderBy: request.orderBy,
       orderDirection: request.orderDirection,
+      instansi_id: request.instansi_id,
     });
 
     // Hitung total user

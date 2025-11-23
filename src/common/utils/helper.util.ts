@@ -41,21 +41,21 @@ export function generateUniqueString(prefix: string): string {
 
 //decode from header token jwt
 export async function getUserFromToken(
-  authorization?: string,
-): Promise<JwtPayload | undefined> {
-  if (!authorization) return undefined;
-
-  const [type, token] = authorization.split(' ');
-  if (type !== 'Bearer') {
-    return undefined;
-  }
-
+  token: string,
+): Promise<JwtPayload | null> {
+  if (!token) return null;
+  const jwtService = new JwtService({
+    secret: process.env.JWT_SECRET || 'ItgdFVuiX2Kn7F6hLlYT',
+  });
   try {
-    const jwtService = new JwtService({ secret: process.env.JWT_SECRET });
-    const payload = await jwtService.verifyAsync<JwtPayload>(token); // typed!
+    const payload = await jwtService.verifyAsync<JwtPayload>(token, {
+      secret: process.env.JWT_SECRET,
+    });
     return payload;
-  } catch (err) {
-    return undefined;
+  }
+  catch (error) {
+    console.error('Error verifying token:', error);
+    return null;
   }
 }
 
@@ -93,18 +93,26 @@ export function dateOnlyToLocal(dateInput: string | Date): Date | null {
 
   let year: number, month: number, day: number;
 
-  if (typeof dateInput === "string") {
+  if (typeof dateInput === 'string') {
     // format "YYYY-MM-DD"
-    [year, month, day] = dateInput.split("-").map(Number);
+    [year, month, day] = dateInput.split('-').map(Number);
   } else if (dateInput instanceof Date) {
     // kalau sudah Date, ambil komponen lokalnya
     year = dateInput.getFullYear();
     month = dateInput.getMonth() + 1;
     day = dateInput.getDate();
   } else {
-    throw new Error("Invalid date input format");
+    throw new Error('Invalid date input format');
   }
 
   // bikin Date jam 12:00 agar aman dari pergeseran zona waktu
   return new Date(year, month - 1, day, 12, 0, 0);
+}
+
+export function extractTokenFromHeader(request: Request): string | undefined {
+  const authHeader = request.headers.authorization;
+  if (!authHeader) return undefined;
+
+  const [type, token] = authHeader.split(' ');
+  return type === 'Bearer' ? token : undefined;
 }

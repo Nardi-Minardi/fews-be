@@ -20,6 +20,8 @@ export class CmsModuleService {
     search?: string;
     limit?: number;
     offset?: number;
+    orderBy?: string;
+    orderDirection?: 'asc' | 'desc';
   }): Promise<{ data: any[]; total: number }> {
 
     this.logger.info('Request get modules with params', { request });
@@ -30,6 +32,8 @@ export class CmsModuleService {
       search: request.search,
       limit: request.limit,
       offset: request.offset,
+      orderBy: request.orderBy,
+      orderDirection: request.orderDirection,
     });
 
     // Hitung total user
@@ -44,6 +48,7 @@ export class CmsModuleService {
       name: module.name,
       instansi_id: module.instansi_id,
       instansi_name: module.m_instansi.name,
+      description: module.description,
       is_active: module.is_active,
       created_at: module.created_at,
       updated_at: module.updated_at,
@@ -112,6 +117,7 @@ export class CmsModuleService {
     const updatedData =  {
       name: updateRequest.name ?? existingModule.name,
       is_active: updateRequest.is_active ?? existingModule.is_active,
+      instansi_id: updateRequest.instansi_id ?? existingModule.instansi_id,
       description: updateRequest.description ?? existingModule.description,
     }
 

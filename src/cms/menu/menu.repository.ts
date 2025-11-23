@@ -10,11 +10,15 @@ export class CmsMenuRepository {
     search,
     limit = 50,
     offset = 0,
+    orderBy = 'id',
+    orderDirection = 'desc',
   }: {
     module_ids?: number[];
     search?: string;
     limit?: number;
     offset?: number;
+    orderBy?: string;
+    orderDirection?: 'asc' | 'desc';
   }) {
     const whereClause: any = {
       AND: [{ OR: [{ is_active: true }] }],
@@ -30,12 +34,29 @@ export class CmsMenuRepository {
       whereClause.AND.push({ module_id: { in: module_ids } });
     }
 
+    // SAFE ORDER CLAUSE
+    let orderClause: any = undefined;
+
+    // hanya set jika orderBy valid
+    if (orderBy && orderBy.trim() !== '') {
+      orderClause = {
+        [orderBy]: orderDirection ?? 'asc',
+      };
+    }
+
     return this.prisma.m_menus.findMany({
       where: whereClause,
+      orderBy: orderClause,
       include: {
         m_modules: {
           select: {
-            name: true, 
+            name: true,
+            m_instansi: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
           },
         },
       },

@@ -12,6 +12,8 @@ import {
   Param,
   HttpException,
   Delete,
+  Headers,
+  Req,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -25,6 +27,8 @@ import { CmsUserValidation } from './user.validation';
 import { Roles } from 'src/common/decorators/roles.decorator';
 import { RolesGuard } from 'src/common/guards/roles.guard';
 import { UserRole } from 'src/common/constants/role.enum';
+import { getUserFromToken } from 'src/common/utils/helper.util';
+import { Request as ExpressRequest } from 'express';
 
 @ApiTags('CMS/User Management')
 @Controller('cms/users')
@@ -43,15 +47,22 @@ export class CmsUserController {
   @ApiQuery({ name: 'limit', required: false, example: 50 })
   @HttpCode(HttpStatus.OK)
   async getAllUsers(
+    @Query('instansi_id') instansi_id: string,
     @Query('role_id') role_id: string,
     @Query('search') search?: string,
     @Query('offset') offset = '0',
     @Query('limit') limit = '50',
     @Query('order_by') orderBy?: string,
     @Query('order_direction') orderDirection?: 'asc' | 'desc',
+    @Req() req?: ExpressRequest,
+    @Headers() headers?: Record<string, any>,
   ) {
-    console.log('orderBy', orderBy);
-    console.log('orderDirection', orderDirection);
+    //get from cookie or authorization header
+    const token = req?.cookies?.auth_token || headers?.['authorization']?.replace('Bearer ', '') || '';
+
+    const userLogin = await getUserFromToken(token);
+    console.log('userLogin', userLogin);
+
     const pageNum = Math.max(parseInt(offset || '0', 10) || 0, 0) + 1;
     const limitNum = Math.min(
       Math.max(parseInt(limit || '50', 10) || 50, 1),
@@ -65,6 +76,9 @@ export class CmsUserController {
       offset: (pageNum - 1) * limitNum,
       orderBy,
       orderDirection,
+      instansi_id: instansi_id
+        ? parseInt(instansi_id, 10)
+        : (userLogin as any)?.instansi_id || undefined,
     });
 
     return {

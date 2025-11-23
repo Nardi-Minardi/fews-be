@@ -22,6 +22,8 @@ export class CmsMenuService {
     search?: string;
     limit?: number;
     offset?: number;
+    orderBy?: string;
+    orderDirection?: 'asc' | 'desc';
   }): Promise<{ data: any[]; total: number }> {
     this.logger.info('Request get menus with params', { request });
 
@@ -31,6 +33,8 @@ export class CmsMenuService {
       search: request.search,
       limit: request.limit,
       offset: request.offset,
+      orderBy: request.orderBy,
+      orderDirection: request.orderDirection,
     });
 
     // Hitung total user
@@ -47,6 +51,8 @@ export class CmsMenuService {
       path: menu.path,
       module_id: menu.module_id,
       module_name: menu.m_modules.name,
+      instansi_id: menu.m_modules.m_instansi.id,
+      instansi_name: menu.m_modules.m_instansi.name,
       is_active: menu.is_active,
       created_at: menu.created_at,
       updated_at: menu.updated_at,

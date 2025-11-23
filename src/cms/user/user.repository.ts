@@ -12,6 +12,7 @@ export class CmsUserRepository {
     offset = 0,
     orderBy = 'id',
     orderDirection = 'desc',
+    instansi_id,
   }: {
     role_id?: number;
     search?: string;
@@ -19,6 +20,7 @@ export class CmsUserRepository {
     offset?: number;
     orderBy?: string;
     orderDirection?: 'asc' | 'desc';
+    instansi_id?: number;
   }) {
     const whereClause: any = {
       AND: [{ OR: [{ is_active: true }, { is_active: null }] }],
@@ -26,6 +28,10 @@ export class CmsUserRepository {
 
     if (role_id) {
       whereClause.AND.push({ role_id });
+    }
+
+    if (instansi_id) {
+      whereClause.AND.push({ instansi_id });
     }
 
     if (search) {
