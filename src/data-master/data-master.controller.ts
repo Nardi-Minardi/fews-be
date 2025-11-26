@@ -1,12 +1,18 @@
-import { Controller, Get, HttpCode, HttpStatus, Query } from '@nestjs/common';
 import {
-  ApiOperation,
-  ApiQuery,
-  ApiTags,
-} from '@nestjs/swagger';
+  Controller,
+  Get,
+  Headers,
+  HttpCode,
+  HttpStatus,
+  Query,
+  Req,
+} from '@nestjs/common';
+import { ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { Public } from 'src/common/decorators/public.decorator';
 import { DataMasterService } from './data-master.service';
 import { DataMasterRepository } from './data-master.repository';
+import { Request as ExpressRequest } from 'express';
+import { getUserFromToken } from 'src/common/utils/helper.util';
 
 @ApiTags('Data Master')
 @Controller('data-master')
@@ -47,13 +53,15 @@ export class DataMasterController {
       Math.max(parseInt(limit || '50', 10) || 50, 1),
       200,
     );
-    const { data: result, total } = await this.dataMasterRepository.listWilayah({
-      level,
-      parentCode,
-      search,
-      page: pageNum,
-      limit: limitNum,
-    });
+    const { data: result, total } = await this.dataMasterRepository.listWilayah(
+      {
+        level,
+        parentCode,
+        search,
+        page: pageNum,
+        limit: limitNum,
+      },
+    );
 
     return {
       status_code: 200,
@@ -70,8 +78,7 @@ export class DataMasterController {
   @Public()
   @ApiOperation({
     summary: 'List Master Criteria',
-    description:
-      'Ambil data master kriteria',
+    description: 'Ambil data master kriteria',
   })
   @ApiQuery({ name: 'search', required: false })
   @ApiQuery({ name: 'offset', required: false, example: 0 })
@@ -86,11 +93,8 @@ export class DataMasterController {
       Math.max(parseInt(limit || '50', 10) || 50, 1),
       200,
     );
-    const { data: result, total } = await this.dataMasterRepository.listCriteria(
-      search,
-      pageNum,
-      limitNum,
-    );
+    const { data: result, total } =
+      await this.dataMasterRepository.listCriteria(search, pageNum, limitNum);
 
     return {
       status_code: 200,
@@ -99,7 +103,7 @@ export class DataMasterController {
       offset: (pageNum - 1) * limitNum,
       total_data: total,
       data: result,
-    }
+    };
   }
 
   @Get('instansi')
@@ -107,8 +111,7 @@ export class DataMasterController {
   @Public()
   @ApiOperation({
     summary: 'List Master Instansi',
-    description:
-      'Ambil data master Instansi',
+    description: 'Ambil data master Instansi',
   })
   @ApiQuery({ name: 'search', required: false })
   @ApiQuery({ name: 'offset', required: false, example: 0 })
@@ -117,17 +120,27 @@ export class DataMasterController {
     @Query('search') search?: string,
     @Query('offset') offset = '0',
     @Query('limit') limit = '50',
+    @Req() req?: ExpressRequest,
+    @Headers() headers?: Record<string, any>,
   ) {
+    //get from cookie or authorization header
+    const token =
+      req?.cookies?.auth_token ||
+      headers?.['authorization']?.replace('Bearer ', '') ||
+      '';
+
+    const userLogin = await getUserFromToken(token);
+
     const pageNum = Math.max(parseInt(offset || '0', 10) || 0, 0) + 1;
     const limitNum = Math.min(
       Math.max(parseInt(limit || '50', 10) || 50, 1),
       200,
     );
-    const { data: result, total } = await this.dataMasterRepository.listInstansi(
-      search,
-      pageNum,
-      limitNum,
-    );
+
+    const instansiId = (userLogin as any)?.instansi_id || undefined;
+
+    const { data: result, total } =
+      await this.dataMasterRepository.listInstansi(search, pageNum, limitNum, instansiId );
 
     return {
       status_code: 200,
@@ -136,7 +149,7 @@ export class DataMasterController {
       offset: (pageNum - 1) * limitNum,
       total_data: total,
       data: result,
-    }
+    };
   }
 
   @Get('roles')
@@ -144,8 +157,7 @@ export class DataMasterController {
   @Public()
   @ApiOperation({
     summary: 'List Master Roles',
-    description:
-      'Ambil data master Roles',
+    description: 'Ambil data master Roles',
   })
   @ApiQuery({ name: 'search', required: false })
   @ApiQuery({ name: 'offset', required: false, example: 0 })
@@ -173,7 +185,7 @@ export class DataMasterController {
       offset: (pageNum - 1) * limitNum,
       total_data: total,
       data: result,
-    }
+    };
   }
 
   @Get('jabatan')
@@ -181,8 +193,7 @@ export class DataMasterController {
   @Public()
   @ApiOperation({
     summary: 'List Master Jabatan',
-    description:
-      'Ambil data master Jabatan',
+    description: 'Ambil data master Jabatan',
   })
   @ApiQuery({ name: 'search', required: false })
   @ApiQuery({ name: 'offset', required: false, example: 0 })
@@ -210,6 +221,6 @@ export class DataMasterController {
       offset: (pageNum - 1) * limitNum,
       total_data: total,
       data: result,
-    }
+    };
   }
 }

@@ -102,12 +102,17 @@ export class DataMasterRepository {
   }
 
   //list master instansi
-  async listInstansi(search?: string, page?: number, limit?: number) {
+  async listInstansi(search?: string, page?: number, limit?: number, instansiId?: number) {
     const skip = ((page || 1) - 1) * (limit || 50);
     const where: any = {};
     if (search) {
       where.name = { contains: search, mode: 'insensitive' };
     }
+
+    if (instansiId) {
+      where.id = instansiId;
+    }
+
     const [data, total] = await Promise.all([
       this.prisma.m_instansi.findMany({
         where,

@@ -146,6 +146,25 @@ export class AuthService {
     `;
     (user as any).menus = menus;
 
+     const menuPermissions = await this.prisma.$queryRaw<any[]>`
+      SELECT 
+       m_menu_permissions.id,
+       m_menu_permissions.menu_name,
+       m_menu_permissions.user_id,
+       m_menu_permissions.menu_id as menu_id,
+       m_menus.module_id as module_id,
+       m_modules.name as module_name,
+        COALESCE(m_menu_permissions.permissions, ARRAY[]::text[]) AS permissions
+      FROM m_menu_permissions 
+      LEFT JOIN  m_menus
+      ON m_menu_permissions.menu_id = m_menus.id
+      LEFT JOIN  m_modules
+      ON m_menus.module_id = m_modules.id
+      WHERE m_menu_permissions.user_id = ${userId}
+      ORDER BY m_menus.id ASC
+    `;
+    (user as any).menu_permissions = menuPermissions;
+
     return {
       id: user.id as any,
       username: user.username,
@@ -161,6 +180,7 @@ export class AuthService {
       updated_at: (user as any).updated_at,
       last_login: (user as any).last_login,
       menus: (user as any).menus,
+      menu_permissions: (user as any).menu_permissions,
     } as any;
   }
 }

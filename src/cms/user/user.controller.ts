@@ -29,16 +29,19 @@ import { RolesGuard } from 'src/common/guards/roles.guard';
 import { UserRole } from 'src/common/constants/role.enum';
 import { getUserFromToken } from 'src/common/utils/helper.util';
 import { Request as ExpressRequest } from 'express';
+import { CmsUserRepository } from './user.repository';
+import { PrismaService } from 'src/common/prisma.service';
 
 @ApiTags('CMS/User Management')
 @Controller('cms/users')
 export class CmsUserController {
-  constructor(private readonly cmsUserService: CmsUserService) {}
+  constructor(
+    private readonly cmsUserService: CmsUserService,
+    private readonly cmsUserRepository: CmsUserRepository,
+    private readonly prisma: PrismaService,
+  ) {}
 
   @Get('/')
-  // @UseGuards(RolesGuard)
-  // @Roles(UserRole.ADMIN, UserRole.OPERATOR)
-  // @RequirePermission('users', 'read')
   @ApiOperation({
     summary: 'Get All Users',
     description: 'Mendapatkan daftar semua user (hanya admin dan operator)',
@@ -58,10 +61,12 @@ export class CmsUserController {
     @Headers() headers?: Record<string, any>,
   ) {
     //get from cookie or authorization header
-    const token = req?.cookies?.auth_token || headers?.['authorization']?.replace('Bearer ', '') || '';
+    const token =
+      req?.cookies?.auth_token ||
+      headers?.['authorization']?.replace('Bearer ', '') ||
+      '';
 
     const userLogin = await getUserFromToken(token);
-    console.log('userLogin', userLogin);
 
     const pageNum = Math.max(parseInt(offset || '0', 10) || 0, 0) + 1;
     const limitNum = Math.min(
@@ -93,7 +98,7 @@ export class CmsUserController {
 
   @Post('/')
   @UseGuards(RolesGuard)
-  @Roles(UserRole.SUPERADMIN)
+  @Roles(UserRole.SUPERADMIN, UserRole.ADMIN)
   @ApiOperation({
     summary: 'Create User',
     description: 'Membuat user baru',
@@ -134,7 +139,7 @@ export class CmsUserController {
 
   @Put('/:id')
   @UseGuards(RolesGuard)
-  @Roles(UserRole.SUPERADMIN)
+  @Roles(UserRole.SUPERADMIN, UserRole.ADMIN)
   @ApiOperation({
     summary: 'Update User',
     description: 'Update an existing user',
@@ -175,7 +180,7 @@ export class CmsUserController {
   //delete
   @Delete('/:id')
   @UseGuards(RolesGuard)
-  @Roles(UserRole.SUPERADMIN)
+  @Roles(UserRole.SUPERADMIN, UserRole.ADMIN)
   @ApiOperation({
     summary: 'Delete User',
     description: 'Delete an existing user',
@@ -190,6 +195,45 @@ export class CmsUserController {
     return {
       status_code: 200,
       message: 'User deleted successfully',
+    };
+  }
+
+  //user detail
+  @Get('/:id')
+  @ApiOperation({
+    summary: 'Get User Detail',
+    description: 'Mendapatkan detail user berdasarkan ID',
+  })
+  @HttpCode(HttpStatus.OK)
+  async getUserDetail(@Param('id') id: string) {
+    if (!id) {
+      throw new HttpException('param id is required', 400);
+    }
+    const numericId = parseInt(id, 10);
+    const result = await this.cmsUserRepository.findUserById(numericId);
+    const menuPermissions = await this.prisma.$queryRaw<any[]>`
+      SELECT 
+       m_menu_permissions.id,
+       m_menu_permissions.menu_name,
+       m_menu_permissions.user_id,
+       m_menu_permissions.menu_id as menu_id,
+       m_menus.module_id as module_id,
+       m_modules.name as module_name,
+        COALESCE(m_menu_permissions.permissions, ARRAY[]::text[]) AS permissions
+      FROM m_menu_permissions 
+      LEFT JOIN  m_menus
+      ON m_menu_permissions.menu_id = m_menus.id
+      LEFT JOIN  m_modules
+      ON m_menus.module_id = m_modules.id
+      WHERE m_menu_permissions.user_id = ${numericId}
+      ORDER BY m_menus.id ASC
+    `;
+    (result as any).menu_permissions = menuPermissions;
+
+    return {
+      status_code: 200,
+      message: 'success',
+      data: result,
     };
   }
 }

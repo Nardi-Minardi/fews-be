@@ -109,6 +109,7 @@ export class CmsUserRepository {
   async findUserById(id: number) {
     return this.prisma.m_users.findUnique({
       where: { id },
+      include: { m_roles: true, m_jabatan: true, m_instansi: true },
     });
   }
 

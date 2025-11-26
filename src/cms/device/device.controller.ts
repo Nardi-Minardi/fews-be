@@ -24,35 +24,35 @@ import {
 } from '@nestjs/swagger';
 import { Roles } from 'src/common/decorators/roles.decorator';
 import { RolesGuard } from 'src/common/guards/roles.guard';
-import { CmsModuleService } from './module.service';
 import { getUserFromToken } from 'src/common/utils/helper.util';
 import { UserRole } from 'src/common/constants/role.enum';
 import { Request as ExpressRequest } from 'express';
+import { CmsDeviceService } from './device.service';
 
-@ApiTags('CMS/Module Management')
-@Controller('cms/modules')
-export class CmsModuleController {
-  constructor(private readonly cmsModuleService: CmsModuleService) {}
+@ApiTags('CMS/Device Management')
+@Controller('cms/devices')
+export class CmsDeviceController {
+  constructor(private readonly cmsDeviceService: CmsDeviceService) {}
 
   @Get('/')
-  @ApiOperation({
-    summary: 'Get All Modules',
-    description: 'Mendapatkan daftar semua module (hanya admin dan operator)',
-  })
   @ApiQuery({ name: 'offset', required: false, example: 0 })
   @ApiQuery({ name: 'limit', required: false, example: 50 })
+  @ApiOperation({
+    summary: 'Get All Devices',
+    description: 'Retrieve a list of all devices with optional filters',
+  })
   @HttpCode(HttpStatus.OK)
-  async getAllModules(
+  async getAllDevices(
     @Query('instansi_id') instansi_id: string,
     @Query('search') search?: string,
     @Query('offset') offset = '0',
     @Query('limit') limit = '50',
     @Query('order_by') orderBy?: string,
     @Query('order_direction') orderDirection?: 'asc' | 'desc',
+    @Query('das_ids') dasIdsQuery?: string,
     @Req() req?: ExpressRequest,
     @Headers() headers?: Record<string, any>,
   ) {
-    //get from cookie or authorization header
     const token =
       req?.cookies?.auth_token ||
       headers?.['authorization']?.replace('Bearer ', '') ||
@@ -60,40 +60,46 @@ export class CmsModuleController {
 
     const userLogin = await getUserFromToken(token);
 
-    const pageNum = Math.max(parseInt(offset || '0', 10) || 0, 0) + 1;
-    const limitNum = Math.min(
-      Math.max(parseInt(limit || '50', 10) || 50, 1),
-      200,
-    );
+    const offsetNum = Math.max(parseInt(offset || '0', 10), 0);
+    const limitNum = Math.min(Math.max(parseInt(limit || '50', 10), 1), 200);
 
-    const { data: result, total } = await this.cmsModuleService.getModules({
+    let dasIds: number[] | undefined = undefined;
+
+     if (dasIdsQuery) {
+      dasIds = dasIdsQuery
+        .split(',')
+        .map((id) => parseInt(id, 10))
+        .filter((id) => !isNaN(id));
+    }
+
+    const { data: result, total } = await this.cmsDeviceService.getDevice({
       instansi_id: instansi_id
         ? parseInt(instansi_id, 10)
         : (userLogin as any)?.instansi_id || undefined,
       search,
       limit: limitNum,
-      offset: (pageNum - 1) * limitNum,
+      offset: offsetNum,
       orderBy,
       orderDirection,
+      das_ids: dasIds,
     });
 
     return {
       status_code: 200,
       message: 'success',
       limit: limitNum,
-      offset: (pageNum - 1) * limitNum,
+      offset: offsetNum,
       total_data: total,
       data: result,
     };
   }
 
-  //create module endpoint can be added here
   @Post('/')
   @UseGuards(RolesGuard)
-  @Roles(UserRole.SUPERADMIN)
+  @Roles(UserRole.SUPERADMIN, UserRole.ADMIN)
   @ApiOperation({
-    summary: 'Create Module',
-    description: 'Create a new module',
+    summary: 'Create Device',
+    description: 'Create a new device',
   })
   @ApiBody({
     schema: {
@@ -108,11 +114,11 @@ export class CmsModuleController {
     },
   })
   @HttpCode(HttpStatus.CREATED)
-  async createModule(@Body() body: any) {
+  async createDevice(@Body() body: any) {
     const request = {
       ...body,
     };
-    const result = await this.cmsModuleService.createModule(request);
+    const result = await this.cmsDeviceService.createModule(request);
 
     return {
       status_code: 201,
@@ -121,32 +127,28 @@ export class CmsModuleController {
     };
   }
 
-  //edit module endpoint can be added here
   @Put('/:id')
   @UseGuards(RolesGuard)
-  @Roles(UserRole.SUPERADMIN)
+  @Roles(UserRole.SUPERADMIN, UserRole.ADMIN, UserRole.OPERATOR)
   @ApiOperation({
-    summary: 'Update Module',
-    description: 'Update an existing module',
+    summary: 'Update device',
+    description: 'Update an existing device',
   })
   @ApiBody({
     schema: {
       type: 'object',
       properties: {
-        instansi_id: { type: 'number', example: 1 },
-        name: { type: 'string', example: 'Updated Module Name' },
-        is_active: { type: 'boolean', example: true },
-        description: { type: 'string', example: 'Updated Module Description' },
+        name: { type: 'string', example: 'Device Name' },
       },
     },
   })
   @HttpCode(HttpStatus.OK)
-  async updateModule(@Param('id') id: string, @Body() body: any) {
+  async updateDevice(@Param('id') id: string, @Body() body: any) {
     if (!id) {
       throw new HttpException('param id is required', 400);
     }
     const numericId = parseInt(id, 10);
-    const result = await this.cmsModuleService.updateModule(numericId, body);
+    const result = await this.cmsDeviceService.updateDevice(numericId, body);
     return {
       status_code: 200,
       message: 'Module updated successfully',
@@ -154,21 +156,20 @@ export class CmsModuleController {
     };
   }
 
-  //delete module endpoint can be added here
   @Delete('/:id')
   @UseGuards(RolesGuard)
-  @Roles(UserRole.SUPERADMIN)
+  @Roles(UserRole.SUPERADMIN, UserRole.ADMIN)
   @ApiOperation({
-    summary: 'Delete Module',
-    description: 'Delete an existing module',
+    summary: 'Delete Device',
+    description: 'Delete an existing Device',
   })
   @HttpCode(HttpStatus.OK)
-  async deleteModule(@Param('id') id: string) {
+  async deleteDevice(@Param('id') id: string) {
     if (!id) {
       throw new HttpException('param id is required', 400);
     }
     const numericId = parseInt(id, 10);
-    const result = await this.cmsModuleService.deleteModule(numericId);
+    const result = await this.cmsDeviceService.deleteModule(numericId);
     return {
       status_code: 200,
       message: 'Module deleted successfully',

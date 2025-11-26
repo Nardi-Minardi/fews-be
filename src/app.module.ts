@@ -12,6 +12,9 @@ import { WebsocketModule } from './websocket/websocket.module';
 import { CmsUserModule } from './cms/user/user.module';
 import { CmsModuleModule } from './cms/module/module.module';
 import { CmsMenuModule } from './cms/menu/menu.module';
+import { CmsDeviceModule } from './cms/device/device.module';
+import { CmsSensorModule } from './cms/sensor/sensor.module';
+import { CmsDasModule } from './cms/das/das.module';
 
 @Module({
   imports: [
@@ -24,6 +27,9 @@ import { CmsMenuModule } from './cms/menu/menu.module';
     CmsUserModule,
     CmsModuleModule,
     CmsMenuModule,
+    CmsDeviceModule,
+    CmsSensorModule,
+    CmsDasModule,
     QueueModule,
     WebsocketModule,
   ],

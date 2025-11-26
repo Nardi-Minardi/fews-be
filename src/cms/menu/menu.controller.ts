@@ -60,7 +60,6 @@ export class CmsMenuController {
       '';
 
     const userLogin = await getUserFromToken(token);
-    console.log('userLogin', userLogin);
 
     // Default moduleIds dari userLogin
     const modules = await this.cmsModuleRepository.findModulesByInstansiIds(
@@ -188,6 +187,8 @@ export class CmsMenuController {
 
   //asssing user to Menu endpoint can be added here
   @Post('/:id/assign-user')
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.SUPERADMIN, UserRole.ADMIN)
   @ApiOperation({
     summary: 'Assign User to Menu',
     description: 'Assign a user to a Menu',
